@@ -30,6 +30,7 @@ $ pip3 install -e . --user
 
 ```
     >>> from ev_routing import EVRouting
+    >>> evr = EVRouting([ 52.50, 13.37, 52.53, 13.40 ])
 ```
 
 ## Running tests

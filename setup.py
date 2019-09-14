@@ -18,6 +18,7 @@ setup(
     license='GPLv3',
     packages=['ev_routing'],
     install_requires=[
+        'overpy',
         'numpy'
     ],
     setup_requires=['pytest-runner'],
