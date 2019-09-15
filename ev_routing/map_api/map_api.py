@@ -45,6 +45,13 @@ class MapAPI:
         >>> map = MapAPI( [ 52.50, 13.37, 52.53, 13.40 ] )
         """
 
+        self.scope = {
+            'bottom_left': ( area[0], area[1] ),
+            'top_right':  ( area[2], area[3] ),
+            'center': ( (area[2] - area[0]) / 2, (area[3] - area[1]) / 2 )
+        }
+
+
         filters = '["highway"~"^(' + '|'.join(self.OSM_STREET_TAGS) + ')$"]'
         query = 'node(' + ','.join([str(i) for i in area]) + ');way' + filters + '(bn);( ._; >; );out;'
         self.response = api.query(query)

@@ -22,6 +22,7 @@ class EVRouting:
         self.v = map.nodes
         self.e = map.edges
 
+        self.map_center = map.scope['center']
 
         self.outcoming = [ [] for _ in range(len(self.v)) ]
         self.incoming  = [ [] for _ in range(len(self.v)) ]
