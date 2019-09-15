@@ -47,20 +47,21 @@ class MapAPI:
 
         filters = '["highway"~"^(' + '|'.join(self.OSM_STREET_TAGS) + ')$"]'
         query = 'node(' + ','.join([str(i) for i in area]) + ');way' + filters + '(bn);( ._; >; );out;'
-        res = api.query(query)
+        self.response = api.query(query)
+
 
         # Nodes
         self.nodes = np.array( [
-            (n.id, float(n.lat), float(n.lon)) for n in res.nodes
+            (n.id, float(n.lat), float(n.lon)) for n in self.response.nodes
         ], dtype=self.NODES_DTYPE) # It's already sorted
 
 
         # Edges
-        n_edges = sum([ len(w.nodes) - 1 for w in res.ways ])
+        n_edges = sum([ len(w.nodes) - 1 for w in self.response.ways ])
         self.edges = np.zeros( (n_edges), dtype=self.EDGES_DTYPE)
 
         i = 0
-        for w in res.ways:
+        for w in self.response.ways:
             if ( len( w.nodes ) < 2 ): continue
 
             for n1, n2 in zip( w.nodes[:-1], w.nodes[1:] ):
