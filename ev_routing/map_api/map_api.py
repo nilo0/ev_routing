@@ -27,8 +27,8 @@ class MapAPI:
     ]
 
     EDGES_DTYPE = [
-        ('n1', np.int64),
-        ('n2', np.int64),
+        ('u', np.int64),
+        ('v', np.int64),
         ('cost', np.float64)
     ]
 
@@ -71,10 +71,10 @@ class MapAPI:
         for w in self.response.ways:
             if ( len( w.nodes ) < 2 ): continue
 
-            for n1, n2 in zip( w.nodes[:-1], w.nodes[1:] ):
-                id1 = np.searchsorted(self.nodes['id'], n1.id)
-                id2 = np.searchsorted(self.nodes['id'], n2.id)
-                cost = self._cost((float(n1.lat), float(n1.lon)), (float(n2.lat), float(n2.lon)))
+            for u, v in zip( w.nodes[:-1], w.nodes[1:] ):
+                id1 = np.searchsorted(self.nodes['id'], u.id)
+                id2 = np.searchsorted(self.nodes['id'], v.id)
+                cost = self._cost((float(u.lat), float(u.lon)), (float(v.lat), float(v.lon)))
 
                 self.edges[i] = (id1, id2, cost)
                 i += 1
