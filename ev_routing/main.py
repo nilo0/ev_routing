@@ -42,40 +42,55 @@ class EVRouting:
         s -- id of the start node
         t -- id of the target node
         bs -- charging level at start node
-        M -- maximum charging level
+        M -- maximum charge level
         """
 
+        # Q array datatype (vid: vertex id, bv: b[v])
         Q_DTYPE = [
             ('vid', np.int64),
             ('bv', np.float64)
         ]
 
+        # Initializing b array with -inf
         b = float('-inf') * np.ones( len(self.v) )
+
         b[sid] = bs
 
+        # Initializing Q with only one member
         Q = np.array( [ (sid, b[sid]) ], dtype=Q_DTYPE)
 
-        def f ( bu, c ):
-            bv = bu - c
+        # Final cost function
+        def f ( e ):
+            bv = b[e['u']] - e['cost']
             if bv < 0: return float('-inf')
             if bv > M: return M
             return bv
 
+
         while len(Q) > 0:
+            # Finding the maximum b[v] in Q
             qid = np.argmax( Q['bv'] )
             uid = Q[qid]['vid']
 
+            # Removing maximum b[v] from Q
+            Q = np.delete( Q, qid )
+
             for e in self.outgoing[uid]:
                 vid = e['v']
-                bv = f( b[uid], e['cost'] )
+                bv = f(e)
 
-                if bv > b[vid]: b[vid] = bv
+                if bv > b[vid]:
+                    b[vid] = bv
 
-                if b[vid] > 0:
-                    Q = np.append( Q, np.array([(vid, b[vid])], dtype=Q_DTYPE) )
+                    if vid in Q['vid']:
+                        idx = np.where( Q['vid'] == vid )[0][0]
+                        Q[idx] = (vid, b[vid])
+                    else:
+                        if b[vid] > 0:
+                            Q = np.append( Q, np.array([(vid, b[vid])], dtype=Q_DTYPE) )
 
-                if vid is tid: return b[tid]
-
-            Q = np.delete( Q, qid )
+                # Break criteria
+                if vid is tid:
+                    return b[tid]
 
         return b[tid]
