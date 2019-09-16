@@ -6,6 +6,7 @@ from .map_api.map_api import MapAPI
 class EVRouting:
     """Electrical Vehicles (EV) Routing Class"""
 
+
     def __init__( self, area ):
         """
         Initializing EVRouting by:
@@ -34,7 +35,7 @@ class EVRouting:
             self.incoming[e['v']].append(e)
 
 
-    def dijkstra( self, sid, tid, bs, M=float('inf') ):
+    def dijkstra( self, s, t, bs, M=float('inf') ):
         """
         EV Dijkstra Algorithm
 
@@ -45,52 +46,79 @@ class EVRouting:
         M -- maximum charge level
         """
 
-        # Q array datatype (vid: vertex id, bv: b[v])
-        Q_DTYPE = [
-            ('vid', np.int64),
-            ('bv', np.float64)
-        ]
+        # TODO: check s and t are within the valid range
+
+        # Data types
+        B_DTYPE = [ ('bv', np.float64), ('prev', np.int64) ]
+        Q_DTYPE = [ ('v', np.int), ('bv', np.float) ]
 
         # Initializing b array with -inf
-        b = float('-inf') * np.ones( len(self.v) )
+        b = np.array(
+            [ (float('-inf'), -1) for _ in range(len(self.v)) ],
+            dtype=B_DTYPE
+        )
 
-        b[sid] = bs
+        b[s]['bv'] = bs
 
         # Initializing Q with only one member
-        Q = np.array( [ (sid, b[sid]) ], dtype=Q_DTYPE)
+        Q = np.array([ (s, b[s]['bv']) ], dtype=Q_DTYPE )
 
         # Final cost function
         def f ( e ):
-            bv = b[e['u']] - e['cost']
+            bv = b[e['u']]['bv'] - e['cost']
             if bv < 0: return float('-inf')
             if bv > M: return M
             return bv
 
-
         while len(Q) > 0:
             # Finding the maximum b[v] in Q
             qid = np.argmax( Q['bv'] )
-            uid = Q[qid]['vid']
+            uid = Q[qid]['v']
 
             # Removing maximum b[v] from Q
             Q = np.delete( Q, qid )
 
+            target_reached = False
+
             for e in self.outgoing[uid]:
-                vid = e['v']
+                v = e['v']
                 bv = f(e)
 
-                if bv > b[vid]:
-                    b[vid] = bv
+                if v is t:
+                    target_reached = True
 
-                    if vid in Q['vid']:
-                        idx = np.where( Q['vid'] == vid )[0][0]
-                        Q[idx] = (vid, b[vid])
-                    else:
-                        if b[vid] > 0:
-                            Q = np.append( Q, np.array([(vid, b[vid])], dtype=Q_DTYPE) )
+                if bv < b[v]['bv']:
+                    continue
 
-                # Break criteria
-                if vid is tid:
-                    return b[tid]
+                b[v]['bv'] = bv
+                b[v]['prev'] = uid
 
-        return b[tid]
+                if v in Q['v']:
+                    idx = np.where( Q['v'] == v )[0][0]
+                    Q[idx] = (v, b[v]['bv'])
+                else:
+                    if b[v]['bv'] > 0:
+                        Q = np.append( Q, np.array([ (v, b[v]['bv']) ], dtype=Q_DTYPE) )
+
+            if target_reached:
+                break
+
+
+        trace_back = np.array( [], dtype=self.e.dtype )
+
+        if b[t]['bv'] > 0:
+            v = t
+            while v is not s:
+                if v is -1:
+                    break
+
+                pv = b[v]['prev']
+                e = [ edge for edge in self.outgoing[pv] if edge['v'] == v ]
+
+                if not e:
+                    break
+
+                trace_back = np.append( trace_back, np.array( e[0], dtype=self.e.dtype ) )
+                v = e[0]['u']
+
+        return b[t]['bv'], trace_back

@@ -62,7 +62,7 @@ class MapAPI:
             'area': area,
             'bottom_left': ( area[0], area[1] ),
             'top_right':  ( area[2], area[3] ),
-            'center': ( (area[2] - area[0]) / 2, (area[3] - area[1]) / 2 )
+            'center': ( (area[2] + area[0]) / 2, (area[3] + area[1]) / 2 )
         }
 
 
