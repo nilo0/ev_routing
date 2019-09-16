@@ -70,7 +70,9 @@ class EVRouting:
                 bv = f( b[uid], e['cost'] )
 
                 if bv > b[vid]: b[vid] = bv
-                Q = np.append( Q, np.array([(vid, b[vid])], dtype=Q_DTYPE) )
+
+                if b[vid] > 0:
+                    Q = np.append( Q, np.array([(vid, b[vid])], dtype=Q_DTYPE) )
 
                 if vid is tid: return b[tid]
 

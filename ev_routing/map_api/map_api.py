@@ -1,6 +1,8 @@
 import overpy
-from math import *
 import numpy as np
+
+from math import *
+import os
 
 
 api = overpy.Overpass()
@@ -32,6 +34,8 @@ class MapAPI:
         ('cost', np.float64)
     ]
 
+    MAPAPI_DIR = os.environ['HOME'] + '/.map_api'
+
 
     def __init__ ( self, area=[] ):
         """
@@ -45,16 +49,31 @@ class MapAPI:
         >>> map = MapAPI( [ 52.50, 13.37, 52.53, 13.40 ] )
         """
 
+        # Create map_api config directory
+        if not 'HOME' in os.environ:
+            return
+
+        if not os.path.exists( self.MAPAPI_DIR ):
+            os.makedirs( self.MAPAPI_DIR)
+
+
+        # Info about the scope of the map
         self.scope = {
+            'area': area,
             'bottom_left': ( area[0], area[1] ),
             'top_right':  ( area[2], area[3] ),
             'center': ( (area[2] - area[0]) / 2, (area[3] - area[1]) / 2 )
         }
 
 
-        filters = '["highway"~"^(' + '|'.join(self.OSM_STREET_TAGS) + ')$"]'
-        query = 'node(' + ','.join([str(i) for i in area]) + ');way' + filters + '(bn);( ._; >; );out;'
-        self.response = api.query(query)
+        # Check if we have already downloaded the map
+        if self._load_nodes_and_edges_from_disk():
+            return
+
+
+        # OpenStreetMap Query
+        osm_query = self._create_osm_query()
+        self.response = api.query( osm_query )
 
 
         # Nodes
@@ -80,6 +99,11 @@ class MapAPI:
                 i += 1
 
 
+        # Save data on disk
+        self._save_nodes_and_edges_to_disk()
+
+
+
     def _cost (self, p1, p2):
         """
         Calculating the cost of each edge
@@ -95,3 +119,71 @@ class MapAPI:
         a = (sin(dlat / 2))**2 + cos(p1[0]) * cos(p1[0]) * (sin(dlon / 2))**2
 
         return 6.378e6 * 2 * atan2( sqrt(a), sqrt(1-a) )
+
+
+
+    def _create_osm_query ( self ):
+        """
+        Create OpenStreetMap query to retreive all nodes and edges within
+        the given area
+
+        Return:
+        query -- string including filters
+        """
+
+        way_types = '["highway"~"^(' + '|'.join(self.OSM_STREET_TAGS) + ')$"]'
+
+        query = 'node(' + ','.join([str(i) for i in self.scope['area']]) + ');'
+        query += 'way' + way_types + '(bn);( ._; >; );'
+        query += 'out;'
+
+        return query
+
+
+
+    def _load_nodes_and_edges_from_disk ( self ):
+        """
+        Load nodes and edges if they have already downloaded on disk
+
+        Return:
+        success -- boolean
+        """
+
+        nodes_file, edges_file = self._nodes_and_edges_filenames()
+
+        if os.path.isfile( nodes_file ) and os.path.isfile( edges_file ):
+            print('loading...')
+            self.nodes = np.load( nodes_file )
+            self.edges = np.load( edges_file )
+
+            return True
+
+        return False
+
+
+    def _save_nodes_and_edges_to_disk ( self ):
+        """
+        Saving downloaded nodes and edges under this path: ~/.ev_routing
+        """
+
+        nodes_file, edges_file = self._nodes_and_edges_filenames()
+
+        np.save( nodes_file, self.nodes )
+        np.save( edges_file, self.edges )
+
+
+
+    def _nodes_and_edges_filenames ( self ):
+        """
+        Crreating filename for nodes and edges to be read or saved on disk
+
+        Return:
+        nodes_filename --
+        edges_filename --
+        """
+
+        basename = '-'.join([ str(a) for a in self.scope['area'] ]).replace('.', '_')
+        nodes_filename = self.MAPAPI_DIR + '/' + basename + '-nodes.npy'
+        edges_filename = self.MAPAPI_DIR + '/' + basename + '-edges.npy'
+
+        return nodes_filename, edges_filename
