@@ -1,5 +1,5 @@
 import numpy as np
-
+import time
 from .map_api.map_api import MapAPI
 
 
@@ -47,6 +47,8 @@ class EVRouting:
         """
 
         # TODO: check s and t are within the valid range
+
+        start_time = time.time()
 
         # Data types
         B_DTYPE = [ ('bv', np.float64), ('prev', np.int64) ]
@@ -103,6 +105,7 @@ class EVRouting:
             if target_reached:
                 break
 
+        print("Dijkstra", (time.time() - start_time) )
 
         trace_back = np.array( [], dtype=self.e.dtype )
 
@@ -122,3 +125,66 @@ class EVRouting:
                 v = e[0]['u']
 
         return b[t]['bv'], trace_back
+
+
+
+    def dijkstra_dict( self, s, t, bs, M=float('inf') ):
+        """
+        Implementing Dijkstra algorithm on python dictionary
+        """
+
+        E = {}
+        self.V = {}
+
+        for i, v in enumerate( self.v ):
+            self.V[i] = {
+                'lat': v['lat'], 'lon': v['lon'], 'incoming': [], 'outgoing': [], 'b': float('-inf')
+            }
+
+        for i, e in enumerate( self.e ):
+            E[i] = { 'u': e['u'], 'v': e['v'], 'cost': e['cost'] }
+            self.V[e['u']]['outgoing'].append( i )
+            self.V[e['v']]['incoming'].append( i )
+
+        start_time = time.time()
+
+        def f_e ( bu, c):
+            bv = bu - c
+            if bv < 0: return float('-inf')
+            if bv > M: return M
+            return bv
+
+
+        for v in self.V.values():
+            v['b'] = float('-inf')
+
+        self.V[s]['b'] = bs
+
+        Q = { s:bs }
+
+        while len(Q) > 0:
+            bu = max(Q.values())
+
+            for q in list(Q):
+                if Q[q] == bu:
+                    u = q
+
+            bu = Q.pop( u )
+
+            for key_e in self.V[u]['outgoing']:
+                e = E[key_e]
+                v = e['v']
+                c = e['cost']
+                bv = self.V[v]['b']
+                bv_new = f_e(bu, c)
+
+                if bv_new > bv:
+                    Q[v] = bv_new
+                    self.V[v]['b'] = bv_new
+
+                if v == t:
+                    print("Dijkstra_dict", (time.time() - start_time) )
+                    return self.V[t]['b']
+
+        print("Dijkstra_dict", (time.time() - start_time) )
+        return self.V[t]['b']
