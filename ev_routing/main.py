@@ -105,7 +105,7 @@ class EVRouting:
             if target_reached:
                 break
 
-        print("Dijkstra", (time.time() - start_time) )
+        print("Dijkstra running time ", (time.time() - start_time) )
 
         trace_back = np.array( [], dtype=self.e.dtype )
 
@@ -134,17 +134,22 @@ class EVRouting:
         """
 
         E = {}
-        self.V = {}
+        V = {}
 
         for i, v in enumerate( self.v ):
-            self.V[i] = {
-                'lat': v['lat'], 'lon': v['lon'], 'incoming': [], 'outgoing': [], 'b': float('-inf')
+            V[i] = {
+                'lat': v['lat'], 'lon': v['lon'], 'incoming': [], 'outgoing': []
             }
 
         for i, e in enumerate( self.e ):
             E[i] = { 'u': e['u'], 'v': e['v'], 'cost': e['cost'] }
-            self.V[e['u']]['outgoing'].append( i )
-            self.V[e['v']]['incoming'].append( i )
+            V[e['u']]['outgoing'].append( i )
+            V[e['v']]['incoming'].append( i )
+
+        SoC = {}
+        for i, v in enumerate(V.values()):
+            SoC[i] = {'b':float('-inf'), 'prev': -1}
+
 
         start_time = time.time()
 
@@ -154,14 +159,11 @@ class EVRouting:
             if bv > M: return M
             return bv
 
-
-        for v in self.V.values():
-            v['b'] = float('-inf')
-
-        self.V[s]['b'] = bs
+        SoC[s]['b'] = bs
 
         Q = { s:bs }
 
+        #retrive the node with maximum key
         while len(Q) > 0:
             bu = max(Q.values())
 
@@ -169,22 +171,31 @@ class EVRouting:
                 if Q[q] == bu:
                     u = q
 
-            bu = Q.pop( u )
+            SoC[u]['b'] = Q.pop( u )
 
-            for key_e in self.V[u]['outgoing']:
+            for key_e in V[u]['outgoing']:
                 e = E[key_e]
                 v = e['v']
                 c = e['cost']
-                bv = self.V[v]['b']
+                bv = SoC[v]['b']
                 bv_new = f_e(bu, c)
 
                 if bv_new > bv:
                     Q[v] = bv_new
-                    self.V[v]['b'] = bv_new
+                    SoC[v]['b'] = bv_new
+                    SoC[v]['prev'] = u
 
                 if v == t:
-                    print("Dijkstra_dict", (time.time() - start_time) )
-                    return self.V[t]['b']
+                    print("Dijkstra_dict running time before trace back", (time.time() - start_time) )
 
-        print("Dijkstra_dict", (time.time() - start_time) )
-        return self.V[t]['b']
+
+        trace = [t]
+        v = t
+        while v != s:
+            trace.insert(0, SoC[v]['prev'])
+            v = SoC[v]['prev']
+
+        print("s-t path is", trace)
+
+        print("Dijkstra_dict running time is ", (time.time() - start_time) )
+        return SoC[t], SoC
