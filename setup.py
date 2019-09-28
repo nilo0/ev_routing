@@ -19,7 +19,6 @@ setup(
     packages=['ev_routing'],
     install_requires=[
         'overpy',
-        'numpy',
         'plotly'
     ],
     setup_requires=['pytest-runner'],

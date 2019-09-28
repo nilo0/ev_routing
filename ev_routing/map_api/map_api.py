@@ -1,7 +1,7 @@
 import overpy
-import numpy as np
 
 from math import *
+import pickle
 import os
 
 
@@ -22,17 +22,6 @@ class MapAPI:
         'road'
     ]
 
-    NODES_DTYPE = [
-        ('id', np.int64),
-        ('lat', np.float64),
-        ('lon', np.float64)
-    ]
-
-    EDGES_DTYPE = [
-        ('u', np.int64),
-        ('v', np.int64),
-        ('cost', np.float64)
-    ]
 
     MAPAPI_DIR = os.environ['HOME'] + '/.map_api'
 
@@ -67,40 +56,61 @@ class MapAPI:
 
 
         # Check if we have already downloaded the map
-        if self._load_nodes_and_edges_from_disk():
-            return
-
+        if self._load_vertices_and_edges_from_disk(): return
 
         # OpenStreetMap Query
-        osm_query = self._create_osm_query()
-        self.response = api.query( osm_query )
+        self.response = api.query( self._osm_query_string() )
 
-
-        # Nodes
-        self.nodes = np.array( [
-            (n.id, float(n.lat), float(n.lon)) for n in self.response.nodes
-        ], dtype=self.NODES_DTYPE) # It's already sorted
-
-
-        # Edges
-        n_edges = sum([ len(w.nodes) - 1 for w in self.response.ways ])
-        self.edges = np.zeros( (n_edges), dtype=self.EDGES_DTYPE)
+        self.v = {}
+        self.e = {}
 
         i = 0
         for w in self.response.ways:
             if ( len( w.nodes ) < 2 ): continue
 
             for u, v in zip( w.nodes[:-1], w.nodes[1:] ):
-                id1 = np.searchsorted(self.nodes['id'], u.id)
-                id2 = np.searchsorted(self.nodes['id'], v.id)
-                cost = self._cost((float(u.lat), float(u.lon)), (float(v.lat), float(v.lon)))
+                if u.id not in self.v:
+                    self.v[ u.id ] = self._default_vertex( u.id, u.lat, u.lon )
 
-                self.edges[i] = (id1, id2, cost)
+                if v.id not in self.v:
+                    self.v[ v.id ] = self._default_vertex( v.id, v.lat, v.lon )
+
+                self.e[i] = self._default_edge( i, u.id, v.id )
+
+                self.v[ u.id ]['outgoing'].append(i)
+                self.v[ v.id ]['incoming'].append(i)
+
                 i += 1
 
 
         # Save data on disk
-        self._save_nodes_and_edges_to_disk()
+        self._save_vertices_and_edges_to_disk()
+
+
+
+    def _default_vertex ( self, id, lat, lon ):
+        """Generating and returning a new vertex object"""
+        return {
+            'id': id,
+            'lat': float( lat ),
+            'lon': float( lon ),
+            'incoming': [],
+            'outgoing': []
+        }
+
+
+
+    def _default_edge ( self, id, uid, vid ):
+        """Generating and returning a new edge object"""
+        return {
+            'id': id,
+            'u': uid,
+            'v': vid,
+            'cost': self._cost(
+                ( self.v[uid]['lat'], self.v[uid]['lon'] ),
+                ( self.v[vid]['lat'], self.v[vid]['lon'] )
+            )
+        }
 
 
 
@@ -122,9 +132,9 @@ class MapAPI:
 
 
 
-    def _create_osm_query ( self ):
+    def _osm_query_string ( self ):
         """
-        Create OpenStreetMap query to retreive all nodes and edges within
+        Create OpenStreetMap query to retreive all vertices and edges within
         the given area
 
         Return:
@@ -141,49 +151,56 @@ class MapAPI:
 
 
 
-    def _load_nodes_and_edges_from_disk ( self ):
+    def _load_vertices_and_edges_from_disk ( self ):
         """
-        Load nodes and edges if they have already downloaded on disk
+        Load vertices and edges if they have already downloaded on disk
 
         Return:
         success -- boolean
         """
 
-        nodes_file, edges_file = self._nodes_and_edges_filenames()
+        vertices_file, edges_file = self._vertices_and_edges_filenames()
 
-        if os.path.isfile( nodes_file ) and os.path.isfile( edges_file ):
-            print('loading...')
-            self.nodes = np.load( nodes_file )
-            self.edges = np.load( edges_file )
+        if os.path.isfile( vertices_file ) and os.path.isfile( edges_file ):
+            print( 'Loading...' )
+
+            with open( vertices_file, 'rb') as handle:
+                self.v = pickle.load(handle)
+
+            with open( edges_file, 'rb') as handle:
+                self.e = pickle.load(handle)
 
             return True
 
         return False
 
 
-    def _save_nodes_and_edges_to_disk ( self ):
+    def _save_vertices_and_edges_to_disk ( self ):
         """
-        Saving downloaded nodes and edges under this path: ~/.ev_routing
+        Saving downloaded vertices and edges under this path: ~/.ev_routing
         """
 
-        nodes_file, edges_file = self._nodes_and_edges_filenames()
+        vertices_file, edges_file = self._vertices_and_edges_filenames()
 
-        np.save( nodes_file, self.nodes )
-        np.save( edges_file, self.edges )
+        with open( vertices_file, 'wb') as handle:
+            pickle.dump( self.v, handle, pickle.HIGHEST_PROTOCOL)
+
+        with open( edges_file, 'wb') as handle:
+            pickle.dump( self.e, handle, pickle.HIGHEST_PROTOCOL)
 
 
 
-    def _nodes_and_edges_filenames ( self ):
+    def _vertices_and_edges_filenames ( self ):
         """
-        Crreating filename for nodes and edges to be read or saved on disk
+        Crreating filename for vertices and edges to be read or saved on disk
 
         Return:
-        nodes_filename --
+        vertices_filename --
         edges_filename --
         """
 
         basename = '-'.join([ str(a) for a in self.scope['area'] ]).replace('.', '_')
-        nodes_filename = self.MAPAPI_DIR + '/' + basename + '-nodes.npy'
-        edges_filename = self.MAPAPI_DIR + '/' + basename + '-edges.npy'
+        vertices_filename = self.MAPAPI_DIR + '/' + basename + '-vertices_v0.pickle'
+        edges_filename = self.MAPAPI_DIR + '/' + basename + '-edges_v0.pickle'
 
-        return nodes_filename, edges_filename
+        return vertices_filename, edges_filename

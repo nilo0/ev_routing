@@ -1,4 +1,3 @@
-import numpy as np
 import time
 from .map_api.map_api import MapAPI
 
@@ -22,21 +21,10 @@ class EVRouting:
         """
 
         map = MapAPI( area )
-        self.v = {}
-        self.e = {}
+        self.v = map.v
+        self.e = map.e
 
         self.map_center = map.scope['center']
-
-        # TODO: Move this to MapAPI
-        for i, v in enumerate( map.nodes ):
-            self.v[i] = {
-                'lat': v['lat'], 'lon': v['lon'], 'incoming': [], 'outgoing': []
-            }
-
-        for i, e in enumerate( map.edges ):
-            self.e[i] = { 'u': e['u'], 'v': e['v'], 'cost': e['cost'] }
-            self.v[e['u']]['outgoing'].append( i )
-            self.v[e['v']]['incoming'].append( i )
 
 
     def dijkstra( self, s, t, bs, M=float('inf') ):
@@ -50,54 +38,53 @@ class EVRouting:
         M -- maximum charge level
         """
 
-        SoC = {}
-        for i, v in enumerate(self.v.values()):
-            SoC[i] = {'b':float('-inf'), 'prev': -1}
-
         def f_e ( bu, c):
             bv = bu - c
             if bv < 0: return float('-inf')
             if bv > M: return M
             return bv
 
-        SoC[s]['b'] = bs
-        Q = { s:bs }
+        def default_SoC ( b=float('-inf'), prev=-1 ):
+            return { 'b': b, 'prev': prev }
+
+        Q = { s: bs }
+
+        SoC = {}
+        SoC[s] = default_SoC( bs )
 
         target_reached = False
 
         while len(Q) > 0:
-            bu = max(Q.values())
+            u = max( Q, key=lambda k: Q[k] )
+            bu = Q.pop(u)
 
-            for q in list(Q):
-                if Q[q] == bu:
-                    u = q
-
-            SoC[u]['b'] = Q.pop( u )
-
-            for key_e in self.v[u]['outgoing']:
-                e = self.e[key_e]
+            for eid in self.v[u]['outgoing']:
+                e = self.e[eid]
                 v = e['v']
                 c = e['cost']
-                bv = SoC[v]['b']
+                bv = SoC[v]['b'] if v in SoC else float('-inf')
                 bv_new = f_e(bu, c)
 
                 if bv_new > bv:
                     Q[v] = bv_new
-                    SoC[v]['b'] = bv_new
-                    SoC[v]['prev'] = u
+                    SoC[v] = default_SoC( bv_new, u )
 
                 if v == t:
+                    print( 'Target has reached!' )
                     target_reached = True
                     break
 
             if target_reached: break
 
 
-        trace = [ t ]
+        if target_reached:
+            trace = [ t ]
 
-        v = t
-        while v != s:
-            trace.insert(0, SoC[v]['prev'])
-            v = SoC[v]['prev']
+            v = t
+            while v != s and v != -1:
+                trace.insert(0, SoC[v]['prev'])
+                v = SoC[v]['prev']
 
-        return SoC[t], SoC, trace
+            return SoC[t], SoC, trace
+        else:
+            return default_SoC(), SoC, []
