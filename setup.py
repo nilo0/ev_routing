@@ -21,6 +21,7 @@ setup(
         'overpy',
         'plotly',
         'requests',
+        'numpy',
     ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
