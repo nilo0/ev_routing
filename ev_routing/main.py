@@ -1,5 +1,5 @@
 import time
-from .map_api.map_api import MapAPI
+from .map.map_api import MapAPI
 
 
 class EVRouting:

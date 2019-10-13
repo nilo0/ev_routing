@@ -26,7 +26,7 @@ class MapAPI:
     MAPAPI_DIR = os.environ['HOME'] + '/.map_api'
 
 
-    def __init__ ( self, area=[] ):
+    def __init__(self, area=[]):
         """
         Initializing OpenStreetMapAPI object
 
@@ -42,16 +42,16 @@ class MapAPI:
         if not 'HOME' in os.environ:
             return
 
-        if not os.path.exists( self.MAPAPI_DIR ):
-            os.makedirs( self.MAPAPI_DIR)
+        if not os.path.exists(self.MAPAPI_DIR):
+            os.makedirs(self.MAPAPI_DIR)
 
 
         # Info about the scope of the map
         self.scope = {
             'area': area,
-            'bottom_left': ( area[0], area[1] ),
-            'top_right':  ( area[2], area[3] ),
-            'center': ( (area[2] + area[0]) / 2, (area[3] + area[1]) / 2 )
+            'bottom_left': (area[0], area[1]),
+            'top_right':  (area[2], area[3]),
+            'center': ((area[2] + area[0]) / 2, (area[3] + area[1]) / 2)
         }
 
 
@@ -59,26 +59,26 @@ class MapAPI:
         if self._load_vertices_and_edges_from_disk(): return
 
         # OpenStreetMap Query
-        self.response = api.query( self._osm_query_string() )
+        self.response = api.query(self._osm_query_string())
 
         self.v = {}
         self.e = {}
 
         i = 0
         for w in self.response.ways:
-            if ( len( w.nodes ) < 2 ): continue
+            if len( w.nodes ) < 2: continue
 
-            for u, v in zip( w.nodes[:-1], w.nodes[1:] ):
+            for u, v in zip(w.nodes[:-1], w.nodes[1:]):
                 if u.id not in self.v:
-                    self.v[ u.id ] = self._default_vertex( u.id, u.lat, u.lon )
+                    self.v[ u.id ] = self._default_vertex(u.id, u.lat, u.lon)
 
                 if v.id not in self.v:
-                    self.v[ v.id ] = self._default_vertex( v.id, v.lat, v.lon )
+                    self.v[ v.id ] = self._default_vertex(v.id, v.lat, v.lon)
 
-                self.e[i] = self._default_edge( i, u.id, v.id )
+                self.e[i] = self._default_edge(i, u.id, v.id)
 
-                self.v[ u.id ]['outgoing'].append(i)
-                self.v[ v.id ]['incoming'].append(i)
+                self.v[u.id]['outgoing'].append(i)
+                self.v[v.id]['incoming'].append(i)
 
                 i += 1
 
@@ -88,33 +88,33 @@ class MapAPI:
 
 
 
-    def _default_vertex ( self, id, lat, lon ):
+    def _default_vertex(self, id, lat, lon):
         """Generating and returning a new vertex object"""
         return {
             'id': id,
-            'lat': float( lat ),
-            'lon': float( lon ),
+            'lat': float(lat),
+            'lon': float(lon),
             'incoming': [],
             'outgoing': []
         }
 
 
 
-    def _default_edge ( self, id, uid, vid ):
+    def _default_edge(self, id, uid, vid):
         """Generating and returning a new edge object"""
         return {
             'id': id,
             'u': uid,
             'v': vid,
             'cost': self._cost(
-                ( self.v[uid]['lat'], self.v[uid]['lon'] ),
-                ( self.v[vid]['lat'], self.v[vid]['lon'] )
+                (self.v[uid]['lat'], self.v[uid]['lon']),
+                (self.v[vid]['lat'], self.v[vid]['lon'])
             )
         }
 
 
 
-    def _cost (self, p1, p2):
+    def _cost(self, p1, p2):
         """
         Calculating the cost of each edge
 
@@ -128,11 +128,11 @@ class MapAPI:
 
         a = (sin(dlat / 2))**2 + cos(p1[0]) * cos(p1[0]) * (sin(dlon / 2))**2
 
-        return 6.378e6 * 2 * atan2( sqrt(a), sqrt(1-a) )
+        return 6.378e6 * 2 * atan2(sqrt(a), sqrt(1-a))
 
 
 
-    def _osm_query_string ( self ):
+    def _osm_query_string(self):
         """
         Create OpenStreetMap query to retreive all vertices and edges within
         the given area
@@ -151,7 +151,7 @@ class MapAPI:
 
 
 
-    def _load_vertices_and_edges_from_disk ( self ):
+    def _load_vertices_and_edges_from_disk(self):
         """
         Load vertices and edges if they have already downloaded on disk
 
@@ -161,13 +161,13 @@ class MapAPI:
 
         vertices_file, edges_file = self._vertices_and_edges_filenames()
 
-        if os.path.isfile( vertices_file ) and os.path.isfile( edges_file ):
-            print( 'Loading...' )
+        if os.path.isfile(vertices_file) and os.path.isfile(edges_file):
+            print('Loading...')
 
-            with open( vertices_file, 'rb') as handle:
+            with open(vertices_file, 'rb') as handle:
                 self.v = pickle.load(handle)
 
-            with open( edges_file, 'rb') as handle:
+            with open(edges_file, 'rb') as handle:
                 self.e = pickle.load(handle)
 
             return True
@@ -175,22 +175,22 @@ class MapAPI:
         return False
 
 
-    def _save_vertices_and_edges_to_disk ( self ):
+    def _save_vertices_and_edges_to_disk(self):
         """
         Saving downloaded vertices and edges under this path: ~/.ev_routing
         """
 
         vertices_file, edges_file = self._vertices_and_edges_filenames()
 
-        with open( vertices_file, 'wb') as handle:
-            pickle.dump( self.v, handle, pickle.HIGHEST_PROTOCOL)
+        with open(vertices_file, 'wb') as handle:
+            pickle.dump(self.v, handle, pickle.HIGHEST_PROTOCOL)
 
-        with open( edges_file, 'wb') as handle:
-            pickle.dump( self.e, handle, pickle.HIGHEST_PROTOCOL)
+        with open(edges_file, 'wb') as handle:
+            pickle.dump(self.e, handle, pickle.HIGHEST_PROTOCOL)
 
 
 
-    def _vertices_and_edges_filenames ( self ):
+    def _vertices_and_edges_filenames(self):
         """
         Crreating filename for vertices and edges to be read or saved on disk
 
