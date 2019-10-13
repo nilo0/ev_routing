@@ -64,8 +64,8 @@ class SRTM3API:
         interpolate: If True, uses interpolation to find the elevation
         """
 
-        dlon = lon - self.data['bl']['lon']
-        dlat = lat - self.data['bl']['lat']
+        dlon = float(lon) - self.data['bl']['lon']
+        dlat = float(lat) - self.data['bl']['lat']
 
         x = dlon * self.SRTM3_RES
         y = dlat * self.SRTM3_RES
@@ -83,7 +83,7 @@ class SRTM3API:
             xi, yi = np.meshgrid(np.arange(i - 1.5, i + 3.5, 1.0), np.arange(j - 1.5, j + 3.5, 1.0))
             f = interp2d(xi, yi, self.data['mesh'][i-2:i+3, j-2:j+3], kind='cubic')
 
-            return f(x, y)
+            return f(x, y)[0]
         else:
             if not 0 <= i < max_i or not 0 <= j < max_j:
                 raise RuntimeError('Out of range!', lon, lat)

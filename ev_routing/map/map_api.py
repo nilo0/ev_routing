@@ -1,3 +1,5 @@
+from .srtm3_api import SRTM3API
+
 import overpy
 
 from math import *
@@ -55,6 +57,10 @@ class MapAPI:
         }
 
 
+        # Loading/downloadin elevations
+        SRTM = SRTM3API(area)
+
+
         # Check if we have already downloaded the map
         if self._load_vertices_and_edges_from_disk(): return
 
@@ -70,12 +76,14 @@ class MapAPI:
 
             for u, v in zip(w.nodes[:-1], w.nodes[1:]):
                 if u.id not in self.v:
-                    self.v[ u.id ] = self._default_vertex(u.id, u.lat, u.lon)
+                    self.v[ u.id ] = self._new_vertex(u.id, u.lat, u.lon)
+                    self.v[ u.id ]['elev'] = SRTM.elevation(u.lon, u.lat)
 
                 if v.id not in self.v:
-                    self.v[ v.id ] = self._default_vertex(v.id, v.lat, v.lon)
+                    self.v[ v.id ] = self._new_vertex(v.id, v.lat, v.lon)
+                    self.v[ v.id ]['elev'] = SRTM.elevation(u.lon, u.lat)
 
-                self.e[i] = self._default_edge(i, u.id, v.id)
+                self.e[i] = self._new_edge(i, u.id, v.id)
 
                 self.v[u.id]['outgoing'].append(i)
                 self.v[v.id]['incoming'].append(i)
@@ -83,31 +91,33 @@ class MapAPI:
                 if 'oneway' in w.tags and w.tags['oneway'] is 'yes':
                     i += 1
                 else:
-                    self.e[i+1] = self._default_edge(i+1, v.id, u.id)
+                    self.e[i+1] = self._new_edge(i+1, v.id, u.id)
                     self.v[v.id]['outgoing'].append(i+1)
                     self.v[u.id]['incoming'].append(i+1)
-
                     i += 2
 
 
         # Save data on disk
         self._save_vertices_and_edges_to_disk()
 
+        del SRTM
 
 
-    def _default_vertex(self, id, lat, lon):
+
+    def _new_vertex(self, id, lat, lon):
         """Generating and returning a new vertex object"""
         return {
             'id': id,
             'lat': float(lat),
             'lon': float(lon),
+            'elev': 0.0, # Not safe
             'incoming': [],
             'outgoing': []
         }
 
 
 
-    def _default_edge(self, id, uid, vid):
+    def _new_edge(self, id, uid, vid):
         """Generating and returning a new edge object"""
         return {
             'id': id,
@@ -207,7 +217,7 @@ class MapAPI:
         """
 
         basename = '-'.join([ str(a) for a in self.scope['area'] ]).replace('.', '_')
-        vertices_filename = self.MAPAPI_DIR + '/' + basename + '-vertices_v0.pickle'
-        edges_filename = self.MAPAPI_DIR + '/' + basename + '-edges_v0.pickle'
+        vertices_filename = self.MAPAPI_DIR + '/' + basename + '-vertices_v1.pickle'
+        edges_filename = self.MAPAPI_DIR + '/' + basename + '-edges_v1.pickle'
 
         return vertices_filename, edges_filename
