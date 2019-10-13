@@ -2,6 +2,7 @@ import os
 import requests
 from zipfile import ZipFile
 import numpy as np
+from scipy.interpolate import interp2d
 
 
 class SRTM3API:
@@ -39,33 +40,63 @@ class SRTM3API:
                 os.makedirs(dirname)
 
 
-        self.region = {
-            'bottom_left': {'lat': area[0], 'lon': area[1]},
-            'top_right': {'lat': area[2], 'lon': area[3]},
-        }
-
         xpixels = (int(area[3] - area[1]) + 1) * self.SRTM3_RES
         ypixels = (int(area[2] - area[0]) + 1) * self.SRTM3_RES
 
         self.data = {
-            'bl_lat': int(self.region['bottom_left']['lat']),
-            'bl_lon': int(self.region['bottom_left']['lon']),
-            'tr_lat': int(self.region['top_right']['lat']) + 1,
-            'tr_lon': int(self.region['top_right']['lon']) + 1,
+            'bl': { 'lat': int(area[0]), 'lon': int(area[1]) },
+            'tr': { 'lat': int(area[2]) + 1, 'lon': int(area[3]) + 1},
             'resolution': (xpixels, ypixels),
-            'mesh': np.zeros((xpixels, ypixels), dtype=[('x', np.dtype('>i2')), ('y', np.dtype('>i2'))])
+            'mesh': np.zeros((xpixels, ypixels), dtype=np.dtype('>i2'))
         }
 
         self._download_area()
         self._load_hgt_data()
 
 
+    def elevation(self, lon, lat, interpolate=True):
+        """
+        Return the elevation of a given (lon, lat) by interpolating STRM3 data
+
+        Parameter
+        lon: longitude
+        lat: latitude
+        interpolate: If True, uses interpolation to find the elevation
+        """
+
+        dlon = lon - self.data['bl']['lon']
+        dlat = lat - self.data['bl']['lat']
+
+        x = dlon * self.SRTM3_RES
+        y = dlat * self.SRTM3_RES
+
+        i = int(x)
+        j = int(y)
+
+        max_i = self.data['resolution'][0]
+        max_j = self.data['resolution'][1]
+
+        if interpolate:
+            if i - 1.5 < 0 or i + 3.5 > max_i or j - 1.5 < 0 or j + 3.5 > max_j:
+                raise RuntimeError('Out of range!', lon, lat)
+
+            xi, yi = np.meshgrid(np.arange(i - 1.5, i + 3.5, 1.0), np.arange(j - 1.5, j + 3.5, 1.0))
+            f = interp2d(xi, yi, self.data['mesh'][i-2:i+3, j-2:j+3], kind='cubic')
+
+            return f(x, y)
+        else:
+            if not 0 <= i < max_i or not 0 <= j < max_j:
+                raise RuntimeError('Out of range!', lon, lat)
+
+            return self.data['mesh'][i, j]
+
+
     def _download_area(self):
         """
-        Downloadin SRTM3 hgt files
+        Downloading SRTM3 hgt files
         """
-        for lon in range(self.data['bl_lon'], self.data['tr_lon']):
-            for lat in range(self.data['bl_lat'], self.data['tr_lat']):
+        for lon in range(self.data['bl']['lon'], self.data['tr']['lon']):
+            for lat in range(self.data['bl']['lat'], self.data['tr']['lat']):
                 mdata = self._get_metadata(lon, lat)
 
                 if os.path.exists(mdata['file']['path']):
@@ -122,14 +153,14 @@ class SRTM3API:
         """
         Loading downloaded .hgt files into self.data
         """
-        for lon in range(self.data['bl_lon'], self.data['tr_lon']):
-            for lat in range(self.data['bl_lat'], self.data['tr_lat']):
+        for lon in range(self.data['bl']['lon'], self.data['tr']['lon']):
+            for lat in range(self.data['bl']['lat'], self.data['tr']['lat']):
                 mdata = self._get_metadata(lon, lat)
 
-                i = (lon - self.data['bl_lon']) * self.SRTM3_RES
+                i = (lon - self.data['bl']['lon']) * self.SRTM3_RES
                 i_end = i + self.SRTM3_RES
 
-                j = (lat - self.data['bl_lat']) * self.SRTM3_RES
+                j = (lat - self.data['bl']['lat']) * self.SRTM3_RES
                 j_end = j + self.SRTM3_RES
 
 
