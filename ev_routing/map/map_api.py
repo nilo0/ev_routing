@@ -80,7 +80,14 @@ class MapAPI:
                 self.v[u.id]['outgoing'].append(i)
                 self.v[v.id]['incoming'].append(i)
 
-                i += 1
+                if 'oneway' in w.tags and w.tags['oneway'] is 'yes':
+                    i += 1
+                else:
+                    self.e[i+1] = self._default_edge(i+1, v.id, u.id)
+                    self.v[v.id]['outgoing'].append(i+1)
+                    self.v[u.id]['incoming'].append(i+1)
+
+                    i += 2
 
 
         # Save data on disk
