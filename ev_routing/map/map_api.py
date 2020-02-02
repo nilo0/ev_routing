@@ -124,29 +124,38 @@ class MapAPI:
             'u': uid,
             'v': vid,
             'cost': self._cost(
-                (self.v[uid]['lat'], self.v[uid]['lon']),
-                (self.v[vid]['lat'], self.v[vid]['lon'])
+                (self.v[uid]['lat'], self.v[uid]['lon'], self.v[uid]['elev']),
+                (self.v[vid]['lat'], self.v[vid]['lon'], self.v[vid]['elev'])
             )
         }
 
 
 
-    def _cost(self, p1, p2):
+    def _cost(self, p1, p2, kappa=0.02, lmbda=1, mu=0.25):
         """
         Calculating the cost of each edge
 
         Keyword arguments:
-        p1 -- 1st point tuple (lat, lon)
-        p2 -- 2nd point tuple (lat, lon)
+        p1 -- 1st point tuple (lat, lon, elev)
+        p2 -- 2nd point tuple (lat, lon, elev)
+        kappa -- (from Moritz Baum 2017, p38)
+        lmbda -- (lambda) (from Moritz Baum 2017, p38)
+        mu -- (from Moritz Baum 2017, p38)
         """
-
         dlat = p2[0] - p1[0]
         dlon = p2[1] - p1[1]
-
         a = (sin(dlat / 2))**2 + cos(p1[0]) * cos(p1[0]) * (sin(dlon / 2))**2
+        l_e = 6.378e6 * 2 * atan2(sqrt(a), sqrt(1-a))
 
-        return 6.378e6 * 2 * atan2(sqrt(a), sqrt(1-a))
+        h_u = p1[2]
+        h_v = p2[2]
 
+        if h_v - h_u >= 0:
+            c_e = (kappa * l_e) + lmbda * (h_v - h_u)
+        else:
+            c_e = (kappa * l_e) + mu * (h_v - h_u)
+
+        return c_e
 
 
     def _osm_query_string(self):
