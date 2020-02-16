@@ -24,7 +24,7 @@ class EVRouting:
         self.v = self.map.v
         self.e = self.map.e
 
-        self.map_center = map.scope['center']
+        self.map_center = self.map.scope['center']
 
 
     def dijkstra( self, s, t, bs, M=float('inf') ):
@@ -99,16 +99,16 @@ class EVRouting:
         n = len(stations)
         l = [[[]]*n]*n
 
-        for i in stations:
-            for j in stations:
-                e = self.map.is_connected(i, j)
+        for i in range(n):
+            for j in range(n):
+                e = self.map.is_connected(stations[i], stations[j])
                 if e:
                     l[i][j] = self._set_of_break_points(e, M)
                 else:
                     l[i][j] = [(0, float('-inf')), (M, float('-inf'))]
 
         for i in range(n):
-            l[i][i] = [(0, 0), (2, 2)]
+            l[i][i] = [(0, 0), (M, M)]
 
         return l
 

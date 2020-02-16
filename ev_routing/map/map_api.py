@@ -117,9 +117,9 @@ class MapAPI:
         """
         u = self.v[i]
 
-        for e in u['outgoing']:
-            if e['v'] == j:
-                return e
+        for eid in u['outgoing']:
+            if self.e[eid]['v'] == j:
+                return self.e[eid]
 
         return None
 
