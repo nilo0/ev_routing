@@ -103,6 +103,26 @@ class MapAPI:
         del SRTM
 
 
+    def is_connected(self, i, j):
+        """
+        Check if two nodes with ids i and j are connected
+
+        Args:
+        i: Id of the first node
+        j: Id of the second node
+
+        Return:
+        if found, it returns the edge connecting node i to node j
+        if not, returns None
+        """
+        u = self.v[i]
+
+        for e in u['outgoing']:
+            if e['v'] == j:
+                return e
+
+        return None
+
 
     def _new_vertex(self, id, lat, lon):
         """Generating and returning a new vertex object"""
