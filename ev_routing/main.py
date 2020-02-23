@@ -104,23 +104,6 @@ class EVRouting:
         # New set of break points after linking two paths
         l_new = []
 
-        def f(break_points, ic):
-            """
-            Args:
-            break_points: List of break points and their final charges
-            ic: Inital charge
-            """
-            I = [bp['point'][0] for bp in break_points] # Initial charge
-            F = [bp['point'][1] for bp in break_points] # Final charge
-            S = [bp['slope'] for bp in break_points] # Right-side slope
-
-            for i in range(len(I) - 1):
-                if I[i] <= ic < I[i+1]:
-                    if S[i] == 0:
-                        return F[i]
-                    else:
-                        return ic - I[i] + F[i]
-
 
         n = len(stations)
 
@@ -128,34 +111,114 @@ class EVRouting:
             for i in range(n):
                 l_ik = l[i][k]
 
-                ik_maps = []
-                for ik in l_ik:
-                    ik_maps.append({
-                        'domain': (ik['point'][0], ik['point'][0] + ik['xlength']),
-                        'range': (ik['point'][1], ik['point'][1] + ik['slope'] * ik['xlength']),
-                    })
-
                 for j in range(n):
                     l_kj = l[k][j]
 
+                    # Linking
                     for ik in l_ik:
-                        l_new.append(
-                            self._soc_segment((ik['point'][0], f(l_kj, ik['point'][1])), None, None)
-                        )
+                        f_ikj = self._f(l_kj, ik[1])
+                        if f_ikj is not None and f_ikj >= 0:
+                            l_new.append(self._soc_segment(ik[0], f_ikj, ik[2]))
 
                     for kj in l_kj:
-                        for ik_map in ik_maps:
-                            if ik_map['range'][0] <= kj['point'][0] < ik_map['range'][1]:
-                                l_new.append(
-                                    self._soc_segment((ik_map['domain'][0] , kj['point'][1]), None, None)
-                                )
-                                break
+                        for ik1, ik2 in zip(l_ik[:-1], l_ik[1:]):
+                            xlength = ik2[0] - ik1[0]
+                            if ik1[1] <= kj[0] < ik1[1] + ik1[2] * xlength:
+                                l_new.append(self._soc_segment(
+                                    ik1[0] + (kj[0] - ik1[1]) * ik1[2], kj[1], kj[2]
+                                ))
+
+                        if kj[0] == l_id[-1][1]:
+                            l_new.append(self._soc_segment(l_id[-1][0], kj[1], kj[2]))
 
                     # Removing duplicated element from l_new
-                    l_new = self._soc_remove_unnecessary_break_points(l_new)
+                    l_new = self._soc_remove_repeated_break_points_sort(l_new)
+
+                    self._soc_merge(l[i][j], l_new)
 
 
-    def _soc_remove_unnecessary_break_points(self, l):
+    def _soc_merge(self, l_ij, l_new, M):
+        """
+        Updating l_ij
+        """
+        do_merge = True
+
+        # TODO: fix the condition
+        # for bp in l_new:
+        #     if self._f(l_ij, bp[0]) is not None and bp[1] > self._f(l_ij, bp[0]):
+        #         do_merge = True
+
+        # if not do_merge:
+        #     return l_ij
+
+        merged = [l for l in l_ij]
+        for l in l_new:
+            i = -1
+            for mi in range(len(merged) - 1):
+                if merged[mi][0] <= l[0] < merged[mi+1][0]:
+                    i = mi
+                    break
+
+            if i < 0:
+                break
+
+            dx = merged[i+1][0] - merged[i][0]
+            dlx = merged[i+1][0] - l[0]
+
+            l_ij_at_l0 = self._f(l_ij, l[0])
+            l_new_at_end = l[1] + l[2] * dlx
+            l_ij_at_end = merged[i][1] + merged[i][2] * dx
+
+            if l[1] <= l_ij_at_l0 and l_new_at_end <= l_ij_at_end:
+                continue
+            elif l[1] > l_ij_at_l0 and l_new_at_end > l_ij_at_end:
+                if l[0] == merged[i][0]:
+                    merged[i] = l
+                    if l[1] + l[2] * dlx > M:
+                        x_intersect = l[0] + l[2] * (M - l[1])
+                        merged.insert(i+1, (x_intersect, M, 0))
+                else:
+                    merged.insert(i+1, l)
+                    if l[1] + l[2] * dlx > M:
+                        x_intersect = l[0] + l[2] * (M - l[1])
+                        merged.insert(i+2, (x_intersect, M, 0))
+            elif l[1] < l_ij_at_l0 and l_new_at_end > l_ij_at_end:
+                x_intersect = l[0] + l_ij_at_l0 - l[1]
+                if x_intersect == merged[i][0]:
+                    del(merged[i])
+                    merged.insert(i, (merged[i][0], merged[i][1], l[2]))
+                else:
+                    merged.insert(i+1, (x_intersect, merged[i][1], l[2]))
+            else:
+                print('Something\'s wrong! I should not be here!')
+
+        return merged
+
+
+    def _f(self, break_points, ic):
+        """
+        Args:
+        break_points:
+        ic:
+        """
+        I = [bp[0] for bp in break_points] # Initial charge
+        F = [bp[1] for bp in break_points] # Final charge
+        S = [bp[2] for bp in break_points] # Right-side slope
+
+        for i1, i2, f, s in zip(I[:-1], I[1:], F[:-1], S[:-1]):
+            if i1 <= ic < i2:
+                if s == 0:
+                    return f
+                else:
+                    return ic - i1 + f
+
+        if ic == I[-1]:
+            return F[-1]
+
+        return None
+
+
+    def _soc_remove_repeated_break_points_and_sort(self, l):
         """
         Removeing break points with the same x but different ys
 
@@ -169,14 +232,14 @@ class EVRouting:
 
             for i in range(len(l_ikj)):
                 ikj = l_ikj[i]
-                if ikj['point'][0] == bp['point'][0]:
+                if ikj[0] == bp[0]:
                     found = True
-                    if bp['point'][1] > ikj['point'][1]:
+                    if bp[1] > ikj[1]:
                         l_ikj[i] = bp
             if not found:
                 l_ikj.append(bp)
 
-        return l_ikj
+        return sorted(l_ikj, key=lambda t: t[0])
 
 
     def _soc_initialise(self, stations, M):
@@ -193,8 +256,8 @@ class EVRouting:
             for j in range(n):
                 if i == j:
                     row.append([
-                        self._soc_segment((0, 0), 1, 0),
-                        self._soc_segment((M, M), 0, 0),
+                        self._soc_segment(0, 0, 1),
+                        self._soc_segment(M, M, 0),
                     ])
                 else:
                     e = self.map.is_connected(stations[i], stations[j])
@@ -202,8 +265,8 @@ class EVRouting:
                         row.append(self._set_of_break_points(e, M))
                     else:
                         row.append([
-                            self._soc_segment((0, float('-inf')), 0, 0),
-                            self._soc_segment((M, float('-inf')), 0, 0),
+                            self._soc_segment(0, float('-inf'), 0),
+                            self._soc_segment(M, float('-inf'), 0),
                         ])
 
             l.append(row)
@@ -225,25 +288,21 @@ class EVRouting:
 
         if c < 0:
             return [
-                self._soc_segment((0, -c), 1, M + c),
-                self._soc_segment((M + c, M), 0, -c),
-                self._soc_segment((M, M), 0, 0),
+                self._soc_segment(0, -c, 1),
+                self._soc_segment(M + c, M, 0),
+                self._soc_segment(M, M, 0),
             ]
         else:
             return [
-                self._soc_segment((c, 0), 1, M-c),
-                self._soc_segment((M, M - c), 1, 0),
+                self._soc_segment(c, 0, 1),
+                self._soc_segment(M, M - c, 0),
             ]
 
-    def _soc_segment(self, point, slope, xlength):
+    def _soc_segment(self, ic, fc, slope):
         """
         Args:
-        point: Starting point of the segment
+        ic: Initial charge
+        fc: Final charge
         slope: Slope of the segment
-        xlength: Projected length of the segment on x-axis (initial charge axis)
         """
-        return {
-            'point': point,
-            'slope': slope,
-            'xlength': xlength,
-        }
+        return (ic, fc, slope)
