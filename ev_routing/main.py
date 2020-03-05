@@ -91,21 +91,228 @@ class EVRouting:
 
 
 
+    def d_profile(self, s, t, M=float('inf')):
+
+        """
+        EV Dijkstra Profile Search
+
+        Keyword arguments:
+        s -- id of the start node
+        t -- id of the target node
+        M -- maximum charge level
+        maps the every possible initial state of charge at s to the optimal state
+        of charge at target t.
+        """
+
+        f = {}
+        Q = {}
+
+        for vid in self.v:
+            f[vid] = [(0, float('-inf'), 0 ), (M, float('-inf'), 0)]
+
+        f[s] = [(0, 0, 1), (M, M, 0)]
+        Q[s] = 0 + potential(s)
+
+        while len(Q) > 0:
+            u = min(Q, key=lambda k:Q[k])
+            key = Q.pop(u)
+
+            for eid in self.v[u]['outgoing']:
+                e = self.e[eid]
+                v = e['v']
+                l = []
+
+                if self.target_prune():
+                    continue
+
+                #linking SoC function of fu and fuv   break point f_u
+                for bp in f[u]:
+                    bp_e = self._set_of_break_points(e, M)
+                    f_e = self._f(f[u], bp[0])
+                    l.append(self._soc_segment(bp[0], f_e , bp[2]))
+
+                for bp in self._set_of_break_points(e, M):
+                    for b1, b2 in zip(f[u][:-1], f[u][1:]):
+                        xlength = b2[0] - b1[0]
+                        if b1[1] <= bp[0] < b1[1] + b1[2] * xlength:
+                            l.append(self._soc_segment(
+                                b1[0] + (bp[1] - b1[1]) * b1[2], bp[1], bp[2]
+                            ))
+                        if bp[0] == f[u][-1][1]:
+                            l.append(self._soc_segment(f[u][-1][0], bp[1], bp[2]))
+
+                # Removing duplicated element from l_new
+                l = self._soc_remove_repeated_break_points_and_sort(l)
+
+                ifmerge = False
+
+                for bp in l:
+                    if bp[1] > self._f(f[v], b[0]):
+                        ifmerge = True
+                #merge break points of fu and fuv and update the key
+                if ifmerge:
+                    f[v] = self._soc_merge(f[v], l, M)
+                    f_v = set(l).difference(set(f[v]))
+
+                    minmin = []
+                    for bp in list(f_v):
+                        minmin.append(bp[0] - bp[1])
+
+                    minkey = min(minmin)
+                    Q[v] = self.potential(v) + minkey
 
 
-    def fw_profile(self, stations, M):
+
+
+
+    def target_prune(self, t, l, Q, M):
+        """
+        target pruning step
+        t : target
+        l : f[v]
+        Q : the priority queue after changing the key value of node v
+        M : battery capacity
+
+        """
+        l = f[v]
+        f[v].sort(key=lambda tup: tup[0])
+        f[t].sort(key=lambda tup: tup[0])
+
+        c_t = []
+        for bp in f[t]:
+            consumption = bp[0] - bp[1]
+            if consumption <= M:
+                c_t.append(consumption)
+        c_t_max = max(c_t)
+
+        c_v  = []
+        for bp in f[v]:
+            c_v.append(bp[0] - bp[1])
+        min_c_v = min(c_v)
+
+        b_t_min = self.find_b_t_min(f[t])
+        b_v_min = self.find_b_v_min(f[v])
+
+        if b_v_min >= b_t_min and min_c_v >= c_t_max:
+            return True
+
+        return False
+
+
+
+
+    def find_b_t_min(self, lt):
+        """
+        returns the min initial charge level for which f_t is not -infty
+        lt : f[t], list of break points of SoC function f_t b, f(b), slope_at_b)
+        """
+        break_the_loop_for_t = False
+        for i in range(len(lt)):
+            if lt[i][1] >= 0:
+                break_the_loop_for_t = True
+                b_t_min = lt[i][0]
+            if breaktheloop: break
+        return b_t_min
+
+    def find_b_v_min(self, l):
+        """
+        returns the minimum charge level for which f_v is not -infty
+        l : f[v],list of break poitns of f_v (b, f(b), slope_at_b)
+        """
+        breaktheloop = False
+        for i in range(len(l)):
+            if l[i][1] >= 0:
+                breaktheloop = True
+                b_v_min = l[i][0]
+
+            if breaktheloop:
+                break
+
+        return b_v_min
+
+    def alpha(self):
+        """
+        alpha function returns a scalar which is used to evaluate a consistent
+        potential, using elevation difference of head and tail of edges.
+        """
+        q_up = []
+        q_down = []
+        alpha_e = {}
+        for eid in self.e:
+            e = self.e[eid]
+            u = e['u']
+            v = e['v']
+            if self.v[v]['elev'] - self.v[u]['elev'] != 0:
+                alpha_e[eid] = e['cost'] / (self.v[v]['elev'] - self.v[u]['elev'])
+                if self.v[v]['elev'] - self.v[u]['elev'] > 0:
+                    q_up.append(alpha_e[eid])
+                if self.v[v]['elev'] - self.v[u]['elev'] < 0:
+                    q_down.append(alpha_e[eid])
+
+        alpha_max = int(max(q_up))
+        alpha_min =int(min(q_down))
+
+        if alpha_min <= 1 <= alpha_max:
+            return 1
+        else:
+            return 2 # TODO
+
+
+
+    def check_alpha_true(self):
+        num_edges = 0
+        num_pos_cost = 0
+        num_neg_cost = 0
+        h_c_pos = 0
+        h_c_neg = 0
+        for eid in self.e:
+            num_edges +=1
+            e = self.e[eid]
+            u = e['u']
+            v = e['v']
+            c = e['cost']
+            h = self.v[v]['elev'] - self.v[u]['elev']
+            if c > 0:
+                num_pos_cost += 1
+                if h == 0:
+                    h_c_pos += 1
+            if c < 0:
+                num_neg_cost += 1
+                if h == 0:
+                    h_c_neg += 1
+        return num_edges, num_neg_cost, num_pos_cost, h_c_pos, h_c_neg
+
+
+
+    def potential(self):
+        """
+        To all nodes it assigns a consistent potential
+        """
+        pot = {}
+
+        alpha = self.alpha()
+        for uid in self.v:
+            pot[uid] = alpha * self.v[uid]['elev']
+
+        return pot
+
+
+
+
+
+    def fw_profile(self, nodes, M):
         """
         Args:
-        stations: list of charging stations ids, e.g. [1, 203, 453]
+        nodes: list of nodes and charging stations ids, e.g. [1, 203, 453]
         M: Battery charge capacity
         """
-        l = self._soc_initialise(stations, M)
+        l = self._soc_initialise(nodes, M)
 
         # New set of break points after linking two paths
         l_new = []
 
 
-        n = len(stations)
+        n = len(nodes)
 
         for k in range(n):
             for i in range(n):
@@ -128,13 +335,20 @@ class EVRouting:
                                     ik1[0] + (kj[0] - ik1[1]) * ik1[2], kj[1], kj[2]
                                 ))
 
-                        if kj[0] == l_id[-1][1]:
+                        if kj[0] == l_id[-1][1]:   #check what this line does!!! and what is l_id
                             l_new.append(self._soc_segment(l_id[-1][0], kj[1], kj[2]))
 
                     # Removing duplicated element from l_new
-                    l_new = self._soc_remove_repeated_break_points_sort(l_new)
+                    l_new = self._soc_remove_repeated_break_points_and_sort(l_new)
 
-                    self._soc_merge(l[i][j], l_new)
+                    ifmerge = False
+
+                    for bp in l_new:
+                        if bp[1] > self._f(l[i][j], bp[0]):
+                            ifmerge = True
+
+                    if ifmerge:
+                        l[i][j] = self._soc_merge(l[i][j], l_new, M)
 
 
     def _soc_merge(self, l_ij, l_new, M):
@@ -160,7 +374,7 @@ class EVRouting:
                     break
 
             if i < 0:
-                break
+                continue
 
             dx = merged[i+1][0] - merged[i][0]
             dlx = merged[i+1][0] - l[0]
@@ -191,6 +405,8 @@ class EVRouting:
                     merged.insert(i+1, (x_intersect, merged[i][1], l[2]))
             else:
                 print('Something\'s wrong! I should not be here!')
+
+        # update last break point
 
         return merged
 
@@ -225,12 +441,12 @@ class EVRouting:
         Args:
         l: List of break points after linking
         """
-        l_ikj = [l[0]]
+        l_ikj = [l[0]]      #is it really a list of list? like [[a, b, c, ... ,z]] where l[0] is [a, b, ...,z]
 
         for bp in l[1:]:
             found = False
 
-            for i in range(len(l_ikj)):
+            for i in range(len(l_ikj)):   #then the len(l_ikj) should be 1!!!
                 ikj = l_ikj[i]
                 if ikj[0] == bp[0]:
                     found = True
@@ -242,13 +458,13 @@ class EVRouting:
         return sorted(l_ikj, key=lambda t: t[0])
 
 
-    def _soc_initialise(self, stations, M):
+    def _soc_initialise(self, nodes, M):
         """
         Args:
-        stations: list of charging stations ids, e.g. [1, 203, 453]
+        nodess: list of nodes and charging stations ids, e.g. [1, 203, 453]
         M: Battery charge capacity
         """
-        n = len(stations)
+        n = len(nodes)
         l = []
 
         for i in range(n):
@@ -260,7 +476,7 @@ class EVRouting:
                         self._soc_segment(M, M, 0),
                     ])
                 else:
-                    e = self.map.is_connected(stations[i], stations[j])
+                    e = self.map.is_connected(nodes[i], nodes[j])
                     if e:
                         row.append(self._set_of_break_points(e, M))
                     else:
@@ -276,7 +492,7 @@ class EVRouting:
 
     def _set_of_break_points(self, e, M):
         """
-        Calculated set of break points for a given edge and charge state
+        Calculated set of break points for a given edge and battery capacity
 
         Arguments:
         e -- a given edge (u, v, c)
