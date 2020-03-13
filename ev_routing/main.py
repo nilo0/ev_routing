@@ -135,43 +135,84 @@ class EVRouting:
 
                 for bp in f[u]:
                     f_e_at_bp = self._f(f_e, bp[1])
+                    print('f_e_at_bp',f_e_at_bp)
                     if f_e_at_bp:
-                        l.append(self._soc_segment(bp[0], f_e_at_bp, bp[2]))
+                        for b1, b2 in zip(f_e[:-1], f_e[1:]):
+                            if b1[0] <= bp[0] < b2[0]:
+                                b = b1
+
+                        if bp[0] == f_e[-1][0]:
+                                b = f_e[-1]
+                        if bp[2] == 1 and b[2] == 1:
+                            l.append(self._soc_segment(bp[0], f_e_at_bp, 1))
+                        else:
+                            l.append(self._soc_segment(bp[0], f_e_at_bp, 0))
+
                 print('l', l)
+
+
+                # for bp in f_e:
+                #     b = self.check_in_range(bp, f[u])
+                #     if b:
+                #         print('b', b)
+                #         l.append((b[0] + (bp[0] - b[1]) * b[2], bp[1], bp[2]))
+                #         print('l', l)
+
 
                 for bp in f_e:
                     for b1, b2 in zip(f[u][:-1], f[u][1:]):
                         xlength = b2[0] - b1[0]
-                        if b1[1] <= bp[0] < b1[1] + b1[2] * xlength:
-                            # The minimum charge in f(u) for which f(f(u)) = bp[1]
-                            l.append(self._soc_segment(
-                                b1[0] + (bp[1] - b1[1]) * b1[2], bp[1], bp[2]
-                            ))
-                        if bp[0] == f[u][-1][1]:
-                            l.append(self._soc_segment(f[u][-1][0], bp[1], bp[2]))
+                        if bp[1] >= 0:
+                            if b1[1] <= bp[0] < b1[1] + b1[2] * xlength:
+                                # The minimum charge in f(u) for which f(f(u)) = bp[1]
+                                l.append(self._soc_segment(
+                                    b1[0] + (bp[0] - b1[1]) * b1[2], bp[1], bp[2]
+                                    ))
+                            if bp[0] == f[u][-1][1]:
+                                l.append(self._soc_segment(f[u][-1][0], bp[1], bp[2]))
+
+                #Removing duplicated element from l_new
+                l = self._soc_remove_repeated_break_points_and_sort(l)
                 print('l', l)
-        #         # Removing duplicated element from l_new
-        #         l = self._soc_remove_repeated_break_points_and_sort(l)
-        #
-        #         ifmerge = False
-        #
-        #         for bp in l:
-        #             if bp[1] > self._f(f[v], bp[0]):
-        #                 ifmerge = True
-        #
-        #         #merge break points of fu and fuv and update the key
-        #         if ifmerge:
-        #             f[v] = self._soc_merge(f[v], l, M)
-        #             f_v = set(l).difference(set(f[v]))
-        #
-        #             min_list = []
-        #             for bp in list(f_v):
-        #                 min_list.append(bp[0] - bp[1])
-        #
-        #             minkey = min(min_list)
-        #             Q[v] = potential[v] + minkey
-        #
+
+                ifmerge = False
+
+                for bp in l:
+                    if bp[1] > self._f(f[v], bp[0]):
+                        ifmerge = True
+
+                #merge break points of fu and fuv and update the key
+                if ifmerge:
+                    f[v] = self._soc_merge(f[v], l, M)
+                    print('f[v]' , f[v])
+                    f_v = set(l).difference(set(f[v]))
+                    print('f_v', f_v)
+
+
+                    min_list = []
+                    for bp in list(f_v):
+                        min_list.append(bp[0] - bp[1])
+
+                    minkey = min(min_list)
+                    print('minkey', minkey)
+                    Q[v] = potential[v] + minkey
+                    print('Q[v]', Q[v])
+
         return f[t]
+
+
+    def check_in_range(self, bp, l1):
+        for b1, b2 in zip(l1[:-1], l1[1:]):
+            if b1[1] != b2[1]:
+                if b1[1] <= bp[0] < b2[1]:
+                    return b1
+            if b1[1] == b2[1] and bp[0] == b1[1]:
+                return b1
+        if bp[0] == l1[-1][1]:
+            return l1[-1]
+
+
+
 
 
 
@@ -405,7 +446,7 @@ class EVRouting:
         return merged
 
 
-    def _f(self, break_points, ic):
+    def _f(self, break_points, ic):  #TODO ask saeed why we need return None at the end
         """
         Args:
         break_points:
@@ -435,19 +476,19 @@ class EVRouting:
         Args:
         l: List of break points after linking
         """
-        l_ikj = [l[0]]      #is it really a list of list? like [[a, b, c, ... ,z]] where l[0] is [a, b, ...,z]
+        l_ikj = [l[0]]
 
         for bp in l[1:]:
             found = False
 
-            for i in range(len(l_ikj)):   #then the len(l_ikj) should be 1!!!
+            for i in range(len(l_ikj)):
                 ikj = l_ikj[i]
                 if ikj[0] == bp[0]:
                     found = True
                     if bp[1] > ikj[1]:
-                        l_ikj[i] = bp
-            if not found:
-                l_ikj.append(bp)
+                        l_ikj[i] = bp    #TODO but if there are two break points for
+            if not found:                #which the first two elements are similar but
+                l_ikj.append(bp)         #the slopes differ, what should we do? which one should we chose?
 
         return sorted(l_ikj, key=lambda t: t[0])
 
@@ -484,7 +525,7 @@ class EVRouting:
         return l
 
 
-    def _set_of_break_points(self, e, M):
+    def _set_of_break_points(self, e, M): #TODO if i add a new break point (0, float('-inf'), 0 ) do i still need to add None in _f?
         """
         Calculated set of break points for a given edge and battery capacity
 
@@ -504,6 +545,7 @@ class EVRouting:
             ]
         else:
             return [
+                self._soc_segment(0, float('-inf'), 0),
                 self._soc_segment(c, 0, 1),
                 self._soc_segment(M, M - c, 0),
             ]
