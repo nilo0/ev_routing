@@ -90,7 +90,6 @@ class EVRouting:
             return default_SoC(), SoC, []
 
 
-
     def d_profile(self, s, t, M=float('inf')):
 
         """
@@ -133,43 +132,10 @@ class EVRouting:
                 f_e = self._set_of_break_points(e, M)
                 print('f_e :', f_e)
 
-                for bp in f[u]:
-                    f_e_at_bp = self._f(f_e, bp[1])
-                    print('f_e_at_bp',f_e_at_bp)
-                    if f_e_at_bp:
-                        for b1, b2 in zip(f_e[:-1], f_e[1:]):
-                            if b1[0] <= bp[0] < b2[0]:
-                                b = b1
-
-                        if bp[0] == f_e[-1][0]:
-                                b = f_e[-1]
-                        if bp[2] == 1 and b[2] == 1:
-                            l.append(self._soc_segment(bp[0], f_e_at_bp, 1))
-                        else:
-                            l.append(self._soc_segment(bp[0], f_e_at_bp, 0))
-
-                print('l', l)
+                l.extend(self.link_step1(f[u], f_e))
+                l.extend(self.link_step2(f_e, f[u]))
 
 
-                # for bp in f_e:
-                #     b = self.check_in_range(bp, f[u])
-                #     if b:
-                #         print('b', b)
-                #         l.append((b[0] + (bp[0] - b[1]) * b[2], bp[1], bp[2]))
-                #         print('l', l)
-
-
-                for bp in f_e:
-                    for b1, b2 in zip(f[u][:-1], f[u][1:]):
-                        xlength = b2[0] - b1[0]
-                        if bp[1] >= 0:
-                            if b1[1] <= bp[0] < b1[1] + b1[2] * xlength:
-                                # The minimum charge in f(u) for which f(f(u)) = bp[1]
-                                l.append(self._soc_segment(
-                                    b1[0] + (bp[0] - b1[1]) * b1[2], bp[1], bp[2]
-                                    ))
-                            if bp[0] == f[u][-1][1]:
-                                l.append(self._soc_segment(f[u][-1][0], bp[1], bp[2]))
 
                 #Removing duplicated element from l_new
                 l = self._soc_remove_repeated_break_points_and_sort(l)
@@ -200,6 +166,55 @@ class EVRouting:
 
         return f[t]
 
+    def link_step1(self, f_u, f_e):
+        l_local = []
+        for bp in f_u:
+            f_e_at_bp = self._f(f_e, bp[1])
+            print('f_e_at_bp', f_e_at_bp)
+            if bp[1] >= 0 and f_e_at_bp:
+                b = f_e[-1]
+                for b1, b2 in zip(f_e[:-1], f_e[1:]):
+                    if b1[0] <= bp[0] < b2[0]:
+                        b = b1
+                        break
+                if bp[2] == 1 and b[2] == 1:
+                    l_local.append(self._soc_segment(bp[0], f_e_at_bp, 1))
+                    print('l_local', l_local)
+                else:
+                    l_local.append(self._soc_segment(bp[0], f_e_at_bp, 0))
+                    print('l_local', l_local)
+
+        return l_local
+
+    def link_step2(self, f_e, f_u):
+        l_local = []
+        for be in f_e:
+            for bu1, bu2 in zip(f_u[:-1], f_u[1:]):
+                xlength = bu2[0] - bu1[0]
+
+                if bu1[2] == 0: #projection of the segment is a point
+                    if bu1[1] == be[0]: #be>=0
+                        if be[2] == 1:
+                            l_local.append(self._soc_segment(bu1[0], be[1], 0))
+                        elif be[2] == 0:
+                            l_local.append(self._soc_segment(bu1[0], be[1], 0))
+                        else:
+                            print('I should not be here!')
+                elif bu1[2] == 1:
+                    if bu1[1] <= be[0] < bu1[1] + bu1[2] * xlength:
+                        if be[2] == 0:
+                            if be[1] >= 0: #TODO why be[1]?
+                                l_local.append(self._soc_segment(bu1[0] + be[0] - bu1[1], be[1], 0))
+                            else:          #check what should it does here?
+                                l_local.append(self._soc_segment(bu1[0], be[0], 0))
+                        elif be[2] == 1:
+                            l_local.append(self._soc_segment(bu1[0] + be[0] - bu1[1], be[1], 1))
+                        else:
+                            print('I should not be here!')
+                else:
+                    print('I should not be here!')
+
+        return l_local
 
     def check_in_range(self, bp, l1):
         for b1, b2 in zip(l1[:-1], l1[1:]):
@@ -281,7 +296,7 @@ class EVRouting:
                 alpha_e[eid] = e['cost'] / (self.v[v]['elev'] - self.v[u]['elev'])
                 if self.v[v]['elev'] - self.v[u]['elev'] > 0:
                     q_up.append(alpha_e[eid])
-                if self.v[v]['elev'] - self.v[u]['elev'] < 0:
+                elif self.v[v]['elev'] - self.v[u]['elev'] < 0:
                     q_down.append(alpha_e[eid])
 
         alpha_max = int(max(q_up))
@@ -446,7 +461,7 @@ class EVRouting:
         return merged
 
 
-    def _f(self, break_points, ic):  #TODO ask saeed why we need return None at the end
+    def _f(self, break_points, ic): #TODO check if the last breakpoint always happens at M
         """
         Args:
         break_points:
@@ -466,7 +481,8 @@ class EVRouting:
         if ic == I[-1]:
             return F[-1]
 
-        return None
+
+
 
 
     def _soc_remove_repeated_break_points_and_sort(self, l):
