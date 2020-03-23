@@ -194,25 +194,24 @@ class EVRouting:
 
                 if bu1[2] == 0: #projection of the segment is a point
                     if bu1[1] == be[0]: #be>=0
-                        if be[2] == 1:
-                            l_local.append(self._soc_segment(bu1[0], be[1], 0))
-                        elif be[2] == 0:
+                        if be[2] == 1 or be[2]==0:
                             l_local.append(self._soc_segment(bu1[0], be[1], 0))
                         else:
                             print('I should not be here!')
+
                 elif bu1[2] == 1:
                     if bu1[1] <= be[0] < bu1[1] + bu1[2] * xlength:
-                        if be[2] == 0:
-                            if be[1] >= 0: #TODO why be[1]?
-                                l_local.append(self._soc_segment(bu1[0] + be[0] - bu1[1], be[1], 0))
-                            else:          #check what should it does here?
-                                l_local.append(self._soc_segment(bu1[0], be[0], 0))
-                        elif be[2] == 1:
+
+                        if be[2] == 0 and bu1[1] >=0: #TODO put some checks to prevent the first element becomes -inf
+                            l_local.append(self._soc_segment(bu1[0] + be[0] - bu1[1], be[1], 0))
+                        elif be[2] == 1 and bu1[1] >=0:
                             l_local.append(self._soc_segment(bu1[0] + be[0] - bu1[1], be[1], 1))
                         else:
                             print('I should not be here!')
                 else:
                     print('I should not be here!')
+            if f_u[-1][1] == be[0]:
+                l_local.append(self._soc_segment(f_u[-1][1], be[1], 0))
 
         return l_local
 
@@ -347,6 +346,33 @@ class EVRouting:
         return pot
 
 
+    # def my_merge(self, l_1, l_2):
+    #     l = self._soc_remove_repeated_break_points_and_sort(l_1)
+    #     ll = self._soc_remove_repeated_break_points_and_sort(l_2)
+    #     my = []
+    #
+    #     l_first = l.pop(0)
+    #     ll_first = ll.pop(0)
+    #
+    #     if ll_first[0] > l_first[0]:
+    #         my.append(self._soc_segment(l_first))
+    #     elif ll_first[0] == l_first[0]:
+    #         if l_first[1] > ll_first[1]:
+    #             my.append(self._soc_segment(l_first))
+    #         else:
+    #             my.append(self._soc_segment(ll_first))
+    #     else
+    #
+    #
+    #
+    #         if l_
+    #     while l > 0 or ll > 0:
+
+
+
+
+
+
 
 
 
@@ -453,10 +479,22 @@ class EVRouting:
                     merged.insert(i, (merged[i][0], merged[i][1], l[2]))
                 else:
                     merged.insert(i+1, (x_intersect, merged[i][1], l[2]))
+            elif l[1] > l_ij_at_l0 and l_new_at_end < l_ij_at_end:
+                x_intersect = l[0] + merged[i][2] * (l[1] - l_ij_at_l0)
+                old_bp = merged[i]
+                print(old_bp)
+                merged.insert(i+1, (x_intersect, old_bp[1] + old_bp[2] * (x_intersect - old_bp[0]), old_bp[2]))
+                merged.insert(i+1, (l[0], l[1], l[2]))
             else:
                 print('Something\'s wrong! I should not be here!')
 
         # update last break point
+        if l_ij[-1][0] == l_new[-1][0]:
+            if merged[-1][0] == l_ij[-1][0]:
+                last_point = merged.pop()
+                merged.append(self._soc_segment(last_point[0], max(l_ij[-1][1], l_new[-1][1]), last_point[2]))
+            else:
+                print('I should not be here!')
 
         return merged
 
