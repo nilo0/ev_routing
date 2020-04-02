@@ -1,6 +1,6 @@
 import time
 from .map.map_api import MapAPI
-
+from copy import deepcopy
 
 class EVRouting:
     """Electrical Vehicles (EV) Routing Class"""
@@ -146,13 +146,19 @@ class EVRouting:
                 for bp in l:
                     if bp[1] > self._f(f[v], bp[0]):
                         ifmerge = True
+                        break
 
                 #merge break points of fu and fuv and update the key
                 if ifmerge:
+                    f_v_new = []
+                    f_v = deepcopy(f[v])
                     f[v] = self._soc_merge(f[v], l, M)
                     print('f[v]' , f[v])
-                    f_v = set(l).difference(set(f[v]))
-                    print('f_v', f_v)
+                    for bp in f[v]:
+                        if bp not in f_v:
+                            f_v_new.append(bp)
+
+                    print('f_v_new', f_v_new)
 
 
                     min_list = []
@@ -165,6 +171,11 @@ class EVRouting:
                     print('Q[v]', Q[v])
 
         return f[t]
+
+
+
+
+
 
     def link_step1(self, f_u, f_e):
         l_local = []
@@ -204,8 +215,10 @@ class EVRouting:
 
                         if be[2] == 0 and bu1[1] >=0: #TODO put some checks to prevent the first element becomes -inf
                             l_local.append(self._soc_segment(bu1[0] + be[0] - bu1[1], be[1], 0))
+                            print(1, 'bu1 =', bu1, 'be[0] =', be[0])
                         elif be[2] == 1 and bu1[1] >=0:
                             l_local.append(self._soc_segment(bu1[0] + be[0] - bu1[1], be[1], 1))
+                            print(2, 'bu1 =', bu1, 'be[0] = ', be[0])
                         else:
                             print('I should not be here!')
                 else:
@@ -355,18 +368,117 @@ class EVRouting:
     #     ll_first = ll.pop(0)
     #
     #     if ll_first[0] > l_first[0]:
-    #         my.append(self._soc_segment(l_first))
+    #         my.append(l_first)
+    #         ll.insert(0, ll_first)
     #     elif ll_first[0] == l_first[0]:
     #         if l_first[1] > ll_first[1]:
-    #             my.append(self._soc_segment(l_first))
+    #             my.append(l_first)
+    #             ll.insert(0, ll_first)
     #         else:
-    #             my.append(self._soc_segment(ll_first))
-    #     else
+    #             my.append(ll_first)
+    #             l.insert(0, l_first)
+    #     else:
+    #         my.append(ll_first)
+    #         l.insert(0, l_first)
+    #
+    #     while len(l) > 0 or len(ll) > 0:
+    #
+    #         l1 = l.pop(0)
+    #         l2 = ll.pop(0)
+    #
+    #         if l1[0] < l2[0]:
+    #
+    #             if l1[1] > l_first[1]:
+    #                 l3 = l[0]
+    #                 if l3[0] > l2[0]:
+    #                     my.append(l1)
+    #                     if l1[2] == 0:
+    #                         if l2[2] == 1:
+    #                             if l2[1] < l1[1]:
+    #                                 l_potentially = self._soc_segment(l2[0] + l1[0] - l2[1], l1[1], 1)
+    #                                 if l_potentially[0] < l3[0]:
+    #                                     my.append(l_potentially)
+    #
+    #                             elif l2[1] == l1[1]:
+    #                                 my.append(l2)
+    #
+    #                             elif l2[1] > l1[1]:
+    #                                 my.append(l2)
+    #
+    #                     elif l1[2] == 1:
+    #                         if l2[1] == l1[1] and l3[2] == 0:
+    #                             y = self._f(ll, l3[0])
+    #                             if y == l3[1]:
+    #                                 my.append(l2)
+    #
+    #                         elif l2[1] > l1[1]:
+    #                             my.append(l2)
+    #
+    #                 elif l3[0] <= l2[0]:
+    #                     my.append(l1)
+    #                     ll.insert(0, l2)
     #
     #
+    #             elif l1[1] == l_first[1]:
+    #                 my.append(l1)
     #
-    #         if l_
-    #     while l > 0 or ll > 0:
+    #             else:
+    #                 continue
+    #
+    #         elif l1[0] > l2[0]:
+    #             if l2[1] > l_first[1]:
+    #                 l3 = ll[0]
+    #                 if l3[0] > l1[0]:
+    #                     my.append(l2)
+    #                     if l2[2] == 0:
+    #                         if l1[2] == 1:
+    #                             if l1[1] < l2[1]:
+    #                                 l_potentially = self._soc_segment(l1[0] + l2[0] - l1[1], l2[1], 1)
+    #                                 if l_potentially[0] < l3[0]:
+    #                                     my.append(l_potentially)
+    #
+    #                             elif l1[1] == l2[1]:
+    #                                 my.append(l1)
+    #
+    #                             elif l1[1] > l2[1]:
+    #                                 my.append(l1)
+    #
+    #                     elif l2[2] == 1:
+    #                         if l1[1] == l2[1] and l3[2] == 0:
+    #                             y = self._f(l, l3[0])
+    #                             if y == l3[1]:
+    #                                 my.append(l1)
+    #
+    #                         elif l1[1] > l2[1]:
+    #                             my.append(l1)
+    #
+    #                 elif l3[0] <= l1[0]:
+    #                     my.append(l2)
+    #                     l.insert(0, l1)
+    #
+    #
+    #             elif l2[1] == l_first[1]:
+    #                 my.append(l2)
+    #
+    #         elif l1[0] == l2[0]:
+    #             if l1[2] == 1:
+    #                 my.append(l1)
+    #             elif l2[2] == 1:
+    #                 my.append(l2)
+    #             else:
+    #                 my.append(l1)
+    #
+    #         l_first = my[-1]
+    #
+    #     return my
+
+
+
+
+
+
+
+
 
 
 
@@ -456,12 +568,18 @@ class EVRouting:
             dlx = merged[i+1][0] - l[0]
 
             l_ij_at_l0 = self._f(l_ij, l[0])
+
+            if l_ij_at_l0 is None:
+                continue
+
             l_new_at_end = l[1] + l[2] * dlx
             l_ij_at_end = merged[i][1] + merged[i][2] * dx
 
-            if l[1] <= l_ij_at_l0 and l_new_at_end <= l_ij_at_end:
+            if l[1] <= l_ij_at_l0 and l_new_at_end <= l_ij_at_end: # l_new completely under l_ij
+                print('1', l, l_ij_at_l0, l_new_at_end, l_ij_at_end)
                 continue
-            elif l[1] > l_ij_at_l0 and l_new_at_end > l_ij_at_end:
+            elif l[1] > l_ij_at_l0 and l_new_at_end > l_ij_at_end: # l_new crosses l_ij from below
+                print('2', l, l_ij_at_l0, l_new_at_end, l_ij_at_end)
                 if l[0] == merged[i][0]:
                     merged[i] = l
                     if l[1] + l[2] * dlx > M:
@@ -472,20 +590,23 @@ class EVRouting:
                     if l[1] + l[2] * dlx > M:
                         x_intersect = l[0] + l[2] * (M - l[1])
                         merged.insert(i+2, (x_intersect, M, 0))
-            elif l[1] < l_ij_at_l0 and l_new_at_end > l_ij_at_end:
+            elif l[1] < l_ij_at_l0 and l_new_at_end > l_ij_at_end: # l_ij crosses l_new from below
+                print('3', l, l_ij_at_l0, l_new_at_end, l_ij_at_end)
                 x_intersect = l[0] + l_ij_at_l0 - l[1]
                 if x_intersect == merged[i][0]:
                     del(merged[i])
                     merged.insert(i, (merged[i][0], merged[i][1], l[2]))
                 else:
                     merged.insert(i+1, (x_intersect, merged[i][1], l[2]))
-            elif l[1] > l_ij_at_l0 and l_new_at_end < l_ij_at_end:
+            elif l[1] > l_ij_at_l0 and l_new_at_end < l_ij_at_end: # l_new crosses l_ij from above
+                print('4', l, l_ij_at_l0, l_new_at_end, l_ij_at_end)
                 x_intersect = l[0] + merged[i][2] * (l[1] - l_ij_at_l0)
                 old_bp = merged[i]
                 print(old_bp)
                 merged.insert(i+1, (x_intersect, old_bp[1] + old_bp[2] * (x_intersect - old_bp[0]), old_bp[2]))
                 merged.insert(i+1, (l[0], l[1], l[2]))
             else:
+                print('5', l, l_ij_at_l0, l_new_at_end, l_ij_at_end)
                 print('Something\'s wrong! I should not be here!')
 
         # update last break point
@@ -518,6 +639,29 @@ class EVRouting:
 
         if ic == I[-1]:
             return F[-1]
+
+    def _f_(self, break_points, ic):
+        """
+        Returns the final state of charge for every possible initial charge
+        """
+
+        I = [bp[0] for bp in break_points] # Initial charge
+        F = [bp[1] for bp in break_points] # Final charge
+        S = [bp[2] for bp in break_points] # Right-side slope
+
+        for i1, i2, f1, f2, s in zip(I[:-1], I[1:], F[:-1], F[1:], S[:-1]):
+            if ic < i1:
+                return float('-inf')
+            elif i1 <= ic < i2:
+                if s == 0:
+                    return f1
+                else:
+                    ic - i1 + f
+            elif ic > i2:
+                return f2
+
+
+
 
 
 
