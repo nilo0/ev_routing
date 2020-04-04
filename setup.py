@@ -2,6 +2,7 @@ from setuptools import setup
 from distutils.command.build_py import build_py as _build_py
 import os
 
+
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 

@@ -12,11 +12,10 @@ class SRTM3API:
     SRTM3_RES = 1201
     SRTM3_REGIONS = [
         # TODO: Complete this list
-        {'lon': (-15, 180), 'lat': (35, 61), 'code': 'Eurasia' },
-        {'lon': (60, 180), 'lat': (-10, 35), 'code': 'Eurasia' },
-        {'lon': (-26, 60), 'lat': (-35, 35), 'code': 'Africa' },
+        {'lon': (-15, 180), 'lat': (35, 61), 'code': 'Eurasia'},
+        {'lon': (60, 180), 'lat': (-10, 35), 'code': 'Eurasia'},
+        {'lon': (-26, 60), 'lat': (-35, 35), 'code': 'Africa'},
     ]
-
 
     def __init__(self, area=[]):
         """
@@ -27,7 +26,7 @@ class SRTM3API:
         """
 
         # Create srtm_api config directory
-        if not 'HOME' in os.environ:
+        if 'HOME' not in os.environ:
             return
 
         if not os.path.exists(self.SRTM3API_DIR):
@@ -39,20 +38,18 @@ class SRTM3API:
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
 
-
         xpixels = (int(area[3] - area[1]) + 1) * self.SRTM3_RES
         ypixels = (int(area[2] - area[0]) + 1) * self.SRTM3_RES
 
         self.data = {
-            'bl': { 'lat': int(area[0]), 'lon': int(area[1]) },
-            'tr': { 'lat': int(area[2]) + 1, 'lon': int(area[3]) + 1},
+            'bl': {'lat': int(area[0]), 'lon': int(area[1])},
+            'tr': {'lat': int(area[2]) + 1, 'lon': int(area[3]) + 1},
             'resolution': (xpixels, ypixels),
             'mesh': np.zeros((xpixels, ypixels), dtype=np.dtype('>i2'))
         }
 
         self._download_area()
         self._load_hgt_data()
-
 
     def elevation(self, lon, lat, interpolate=True):
         """
@@ -80,8 +77,11 @@ class SRTM3API:
             if i - 1.5 < 0 or i + 3.5 > max_i or j - 1.5 < 0 or j + 3.5 > max_j:
                 raise RuntimeError('Out of range!', lon, lat)
 
-            xi, yi = np.meshgrid(np.arange(i - 1.5, i + 3.5, 1.0), np.arange(j - 1.5, j + 3.5, 1.0))
-            f = interp2d(xi, yi, self.data['mesh'][i-2:i+3, j-2:j+3], kind='cubic')
+            xi, yi = np.meshgrid(
+                    np.arange(i - 1.5, i + 3.5, 1.0),
+                    np.arange(j - 1.5, j + 3.5, 1.0))
+            f = interp2d(
+                    xi, yi, self.data['mesh'][i-2:i+3, j-2:j+3], kind='cubic')
 
             return f(x, y)[0]
         else:
@@ -89,7 +89,6 @@ class SRTM3API:
                 raise RuntimeError('Out of range!', lon, lat)
 
             return self.data['mesh'][i, j]
-
 
     def _download_area(self):
         """
@@ -109,7 +108,6 @@ class SRTM3API:
                 hgtzip.extractall(mdata['directory']['path'])
                 hgtzip.close()
 
-
     def _get_region_code(self, lon, lat):
         """
         Getting the region name based on (lon, lat)
@@ -120,7 +118,6 @@ class SRTM3API:
                     return region['code']
 
         raise RuntimeError('Region not found!', lon, lat)
-
 
     def _get_metadata(self, lon, lat):
         regionname = self._get_region_code(lon, lat)
@@ -148,7 +145,6 @@ class SRTM3API:
             'url': self.SRTM3_URL + '/' + regionname + '/' + filename + '.zip',
         }
 
-
     def _load_hgt_data(self):
         """
         Loading downloaded .hgt files into self.data
@@ -163,12 +159,12 @@ class SRTM3API:
                 j = (lat - self.data['bl']['lat']) * self.SRTM3_RES
                 j_end = j + self.SRTM3_RES
 
-
                 # We need to flip the hgt matrix along y-dir since it is
                 # arranged from west to east and then **north to south**
                 self.data['mesh'][i:i_end, j:j_end] = np.flip(
                     np.fromfile(
-                        mdata['file']['path'], np.dtype('>i2'), self.SRTM3_RES*self.SRTM3_RES
-                    ).reshape((self.SRTM3_RES, self.SRTM3_RES)),
-                    1 # y-dir
+                        mdata['file']['path'],
+                        np.dtype('>i2'),
+                        self.SRTM3_RES*self.SRTM3_RES
+                    ).reshape((self.SRTM3_RES, self.SRTM3_RES)), 1  # y-dir
                 )

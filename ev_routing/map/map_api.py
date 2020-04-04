@@ -2,7 +2,7 @@ from .srtm3_api import SRTM3API
 
 import overpy
 
-from math import *
+from math import sin, cos, atan2, sqrt
 import pickle
 import os
 
@@ -24,9 +24,7 @@ class MapAPI:
         'road'
     ]
 
-
     MAPAPI_DIR = os.environ['HOME'] + '/.map_api'
-
 
     def __init__(self, area=[]):
         """
@@ -41,12 +39,11 @@ class MapAPI:
         """
 
         # Create map_api config directory
-        if not 'HOME' in os.environ:
+        if 'HOME' not in os.environ:
             return
 
         if not os.path.exists(self.MAPAPI_DIR):
             os.makedirs(self.MAPAPI_DIR)
-
 
         # Info about the scope of the map
         self.scope = {
@@ -56,13 +53,12 @@ class MapAPI:
             'center': ((area[2] + area[0]) / 2, (area[3] + area[1]) / 2)
         }
 
-
         # Loading/downloadin elevations
         SRTM = SRTM3API(area)
 
-
         # Check if we have already downloaded the map
-        if self._load_vertices_and_edges_from_disk(): return
+        if self._load_vertices_and_edges_from_disk():
+            return
 
         # OpenStreetMap Query
         self.response = api.query(self._osm_query_string())
@@ -72,23 +68,24 @@ class MapAPI:
 
         i = 0
         for w in self.response.ways:
-            if len( w.nodes ) < 2: continue
+            if len(w.nodes) < 2:
+                continue
 
             for u, v in zip(w.nodes[:-1], w.nodes[1:]):
                 if u.id not in self.v:
-                    self.v[ u.id ] = self._new_vertex(u.id, u.lat, u.lon)
-                    self.v[ u.id ]['elev'] = SRTM.elevation(u.lon, u.lat)
+                    self.v[u.id] = self._new_vertex(u.id, u.lat, u.lon)
+                    self.v[u.id]['elev'] = SRTM.elevation(u.lon, u.lat)
 
                 if v.id not in self.v:
-                    self.v[ v.id ] = self._new_vertex(v.id, v.lat, v.lon)
-                    self.v[ v.id ]['elev'] = SRTM.elevation(u.lon, u.lat)
+                    self.v[v.id] = self._new_vertex(v.id, v.lat, v.lon)
+                    self.v[v.id]['elev'] = SRTM.elevation(u.lon, u.lat)
 
                 self.e[i] = self._new_edge(i, u.id, v.id)
 
                 self.v[u.id]['outgoing'].append(i)
                 self.v[v.id]['incoming'].append(i)
 
-                if 'oneway' in w.tags and w.tags['oneway'] is 'yes':
+                if 'oneway' in w.tags and w.tags['oneway'] == 'yes':
                     i += 1
                 else:
                     self.e[i+1] = self._new_edge(i+1, v.id, u.id)
@@ -96,12 +93,10 @@ class MapAPI:
                     self.v[u.id]['incoming'].append(i+1)
                     i += 2
 
-
         # Save data on disk
         self._save_vertices_and_edges_to_disk()
 
         del SRTM
-
 
     def is_connected(self, i, j):
         """
@@ -123,19 +118,16 @@ class MapAPI:
 
         return None
 
-
     def _new_vertex(self, id, lat, lon):
         """Generating and returning a new vertex object"""
         return {
             'id': id,
             'lat': float(lat),
             'lon': float(lon),
-            'elev': 0.0, # Not safe
+            'elev': 0.0,  # Not safe
             'incoming': [],
             'outgoing': []
         }
-
-
 
     def _new_edge(self, id, uid, vid):
         """Generating and returning a new edge object"""
@@ -148,8 +140,6 @@ class MapAPI:
                 (self.v[vid]['lat'], self.v[vid]['lon'], self.v[vid]['elev'])
             )
         }
-
-
 
     def _cost(self, p1, p2, kappa=0.02, lmbda=1, mu=0.25):
         """
@@ -177,7 +167,6 @@ class MapAPI:
 
         return c_e
 
-
     def _osm_query_string(self):
         """
         Create OpenStreetMap query to retreive all vertices and edges within
@@ -194,8 +183,6 @@ class MapAPI:
         query += 'out;'
 
         return query
-
-
 
     def _load_vertices_and_edges_from_disk(self):
         """
@@ -220,7 +207,6 @@ class MapAPI:
 
         return False
 
-
     def _save_vertices_and_edges_to_disk(self):
         """
         Saving downloaded vertices and edges under this path: ~/.ev_routing
@@ -234,8 +220,6 @@ class MapAPI:
         with open(edges_file, 'wb') as handle:
             pickle.dump(self.e, handle, pickle.HIGHEST_PROTOCOL)
 
-
-
     def _vertices_and_edges_filenames(self):
         """
         Crreating filename for vertices and edges to be read or saved on disk
@@ -245,8 +229,8 @@ class MapAPI:
         edges_filename --
         """
 
-        basename = '-'.join([ str(a) for a in self.scope['area'] ]).replace('.', '_')
-        vertices_filename = self.MAPAPI_DIR + '/' + basename + '-vertices_v1.pickle'
-        edges_filename = self.MAPAPI_DIR + '/' + basename + '-edges_v1.pickle'
+        base = '-'.join([str(a) for a in self.scope['area']]).replace('.', '_')
+        vertices = self.MAPAPI_DIR + '/' + base + '-vertices_v1.pickle'
+        edges = self.MAPAPI_DIR + '/' + base + '-edges_v1.pickle'
 
-        return vertices_filename, edges_filename
+        return vertices, edges

@@ -10,8 +10,7 @@ class Dijkstra(EVRouting):
         """
         EVRouting.__init__(self, area)
 
-
-    def dijkstra( self, s, t, bs, M=float('inf') ):
+    def dijkstra(self, s, t, bs, M=float('inf')):
         """
         EV Dijkstra Algorithm
 
@@ -22,24 +21,26 @@ class Dijkstra(EVRouting):
         M -- maximum charge level
         """
 
-        def f_e ( bu, c):
+        def f_e(bu, c):
             bv = bu - c
-            if bv < 0: return float('-inf')
-            if bv > M: return M
+            if bv < 0:
+                return float('-inf')
+            if bv > M:
+                return M
             return bv
 
-        def default_SoC ( b=float('-inf'), prev=-1 ):
-            return { 'b': b, 'prev': prev }
+        def default_SoC(b=float('-inf'), prev=-1):
+            return {'b': b, 'prev': prev}
 
-        Q = { s: bs }
+        Q = {s: bs}
 
         SoC = {}
-        SoC[s] = default_SoC( bs )
+        SoC[s] = default_SoC(bs)
 
         target_reached = False
 
         while len(Q) > 0:
-            u = max( Q, key=lambda k: Q[k] )
+            u = max(Q, key=lambda k: Q[k])
             bu = Q.pop(u)
 
             for eid in self.v[u]['outgoing']:
@@ -51,18 +52,18 @@ class Dijkstra(EVRouting):
 
                 if bv_new > bv:
                     Q[v] = bv_new
-                    SoC[v] = default_SoC( bv_new, u )
+                    SoC[v] = default_SoC(bv_new, u)
 
                 if v == t:
-                    print( 'Target has reached!' )
+                    print('Target has reached!')
                     target_reached = True
                     break
 
-            if target_reached: break
-
+            if target_reached:
+                break
 
         if target_reached:
-            trace = [ t ]
+            trace = [t]
 
             v = t
             while v != s and v != -1:
