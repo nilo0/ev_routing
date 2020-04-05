@@ -1,6 +1,6 @@
 from .map.map_api import MapAPI
 from copy import deepcopy
-from helper import break_point
+from .helper import break_point
 
 
 class EVRouting:
@@ -25,6 +25,8 @@ class EVRouting:
         self.e = self.map.e
 
         self.map_center = self.map.scope['center']
+
+        self.vid = [v['id'] for v in self.v.values()]
 
     def d_profile(self, s, t, M=float('inf')):
         """

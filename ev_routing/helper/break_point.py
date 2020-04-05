@@ -1,5 +1,4 @@
 def init(e, M):
-    #TODO if i add a new break point (0, float('-inf'), 0 ) do i still need to add None in _f?
     """
     Calculated set of break points for a given edge and battery capacity
 
@@ -7,8 +6,6 @@ def init(e, M):
     e -- a given edge (u, v, c)
     M -- Battery charge capacity
     """
-    break_points = []
-
     c = e['cost']
 
     if c < 0:

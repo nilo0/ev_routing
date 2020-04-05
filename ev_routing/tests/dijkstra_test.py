@@ -1,4 +1,4 @@
-from ..main import EVRouting
+from ..dijkstra import Dijkstra
 
 
 def test_if_main_works():
@@ -6,7 +6,7 @@ def test_if_main_works():
     tr = {'lat': 52.53e0, 'lon': 13.43e0}  # Top right corner coordinate
 
     area = [bl['lat'], bl['lon'], tr['lat'], tr['lon']]
-    evr = EVRouting(area)
+    evr = Dijkstra(area)
 
     assert isinstance(evr.v, dict)
     assert isinstance(evr.e, dict)

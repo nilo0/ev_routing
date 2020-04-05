@@ -98,7 +98,7 @@ class MapAPI:
 
         del SRTM
 
-    def is_connected(self, i, j):
+    def connected(self, i, j):
         """
         Check if two nodes with ids i and j are connected
 

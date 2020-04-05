@@ -6,7 +6,7 @@ from .helper import break_points_list
 class FloydWarshallProfile(EVRouting):
     """Floyd-Warshall profile"""
 
-    def __init__(self, area, M):
+    def __init__(self, area, M, n=None):
         """
         Initializing FloydWarshallProfile class
         by calling EVRouting initializer
@@ -17,50 +17,9 @@ class FloydWarshallProfile(EVRouting):
         """
         EVRouting.__init__(self, area)
 
-        self.l_ij = self.l_ij_init(self.v, M)
+        self.matrix = []
 
-    def run(self, nodes, M):
-        """
-        Args:
-        nodes: list of nodes and charging stations ids, e.g. [1, 203, 453]
-        M: Battery charge capacity
-        """
-        #  l = self.l_ij_init(nodes, M)
-
-        # New set of break points after linking two paths
-        l_new = []
-
-        n = len(nodes)
-
-        for k in range(n):
-            for i in range(n):
-                l_ik = self.l_ij[i][k]
-
-                for j in range(n):
-                    l_kj = self.l_ij[k][j]
-
-                    l_new = break_points_list.link(l_ik, l_kj)
-                    l_new = break_points_list.sort(l_new)
-
-                    ifmerge = False
-
-                    for bp in l_new:
-                        if bp[1] > self._f(self.l_ij[i][j], bp[0]):
-                            ifmerge = True
-                            break
-
-                    if ifmerge:
-                        self.l_ij[i][j] = self._soc_merge(
-                                self.l_ij[i][j], l_new, M)
-
-    def l_ij_init(self, nodes, M):
-        """
-        Args:
-        nodess: list of nodes and charging stations ids, e.g. [1, 203, 453]
-        M: Battery charge capacity
-        """
-        n = len(nodes)
-        l = []
+        n = len(self.v) if n is None else n
 
         for i in range(n):
             row = []
@@ -71,7 +30,7 @@ class FloydWarshallProfile(EVRouting):
                         break_point.new(M, M, 0),
                     ])
                 else:
-                    e = self.map.is_connected(nodes[i], nodes[j])
+                    e = self.map.connected(self.vid[i], self.vid[j])
                     if e:
                         row.append(break_point.init(e, M))
                     else:
@@ -80,6 +39,27 @@ class FloydWarshallProfile(EVRouting):
                             break_point.new(M, float('-inf'), 0),
                         ])
 
-            l.append(row)
+            self.matrix.append(row)
 
-        return l
+    def run(self):
+        """
+        Args:
+        M: Battery charge capacity
+        """
+        # New set of break points after linking two paths
+        l_new = []
+
+        n = len(self.matrix)
+
+        for k in range(n):
+            for i in range(n):
+                l_ik = self.matrix[i][k]
+
+                for j in range(n):
+                    l_kj = self.matrix[k][j]
+
+                    l_new = break_points_list.link(l_ik, l_kj)
+                    l_new = break_points_list.sort(l_new)
+
+                    self.matrix[i][j] = break_points_list.merge(
+                        self.matrix[i][j], l_new)

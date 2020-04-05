@@ -24,6 +24,7 @@ setup(
         'requests',
         'numpy',
         'scipy',
+        'pytest',
     ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],

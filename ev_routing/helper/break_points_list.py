@@ -12,6 +12,9 @@ def sort(l):
     Returns:
     A new list of break points sorted and with no redundant element
     """
+    if len(l) < 2:
+        return l
+
     l_ikj = [l[0]]
 
     for bp in l[1:]:
@@ -48,10 +51,8 @@ def link(l_ik, l_kj):
     for ik in l_ik:
         charge_at_j = _f(l_kj, ik[1])
 
-        if charge_at_j is None:
-            continue
-
         if charge_at_j == float('-inf'):
+            l_local.append(break_point.new(ik[0], charge_at_j, 0))
             continue
 
         if ik[1] >= 0:
@@ -68,19 +69,23 @@ def link(l_ik, l_kj):
     for jk in l_kj:
         idx = search_range(l_ik, jk[0])
 
-        if idx is not None:
-            if l_ik[idx][2] == 0:
-                l_local.append(break_point.new(l_ik[idx][0], jk[1], 0))
-            elif l_ik[idx][2] == 1:
-                if jk[2] == 0:
-                    l_local.append(break_point.new(
-                        l_ik[idx][0] + (jk[0] - l_ik[idx][1]), jk[1], 0))
-                else:
-                    l_local.append(break_point.new(
-                        l_ik[idx][0] + (jk[0] - l_ik[idx][1]), jk[1], 1))
+        if idx is None:
+            continue
+
+        if l_ik[idx][2] == 0:
+            l_local.append(break_point.new(l_ik[idx][0], jk[1], 0))
+        elif l_ik[idx][2] == 1:
+            if jk[2] == 0:
+                l_local.append(break_point.new(
+                    l_ik[idx][0] + (jk[0] - l_ik[idx][1]), jk[1], 0))
+            else:
+                l_local.append(break_point.new(
+                    l_ik[idx][0] + (jk[0] - l_ik[idx][1]), jk[1], 1))
+
+    return l_local
 
 
-def merge(l1, l2, M):
+def merge(l1, l2):
     """
     Point-wise maximum of two functions (list of break points)
 
@@ -97,33 +102,31 @@ def merge(l1, l2, M):
 
     df_old = 0.0
 
-    while not (i == (len(l1) - 1) and j == (len(l2) - 1)):
+    while i < len(l1) or j < len(l2):
         if l1[i][0] < l2[j][0]:
             x = l1[i][0]
             f1, f2 = l1[i][1], _f(l2, x)
+            s1, s2 = l1[i][2], _s(l2, x)
             di, dj = 1, 0
 
             if f1 != f2:
-                merged.append(l1[i] if f1 > f2
-                              else break_point.new(x, f2, l2[j][2]))
+                merged.append(
+                    l1[i] if f1 > f2
+                    else break_point.new(x, f2, s2))
             else:
-                # Append break point with bigger slope
-                s2 = _s(l2, x)
-                merged.append(l1[i] if l1[i][2] > s2
-                              else break_point.new(x, f2, s2))
+                merged.append(l1[i] if s1 > s2 else break_point.new(x, f2, s2))
+
         elif l2[j][0] < l1[i][0]:
             x = l2[j][0]
             f1, f2 = _f(l1, x), l2[j][1]
+            s1, s2 = _s(l1, x), l2[j][2]
             di, dj = 0, 1
 
             if f1 != f2:
-                merged.append(break_point.new(x, f1, l1[i][2]) if f1 > f2
-                              else l2[j])
+                merged.append(break_point.new(x, f1, s1) if f1 > f2 else l2[j])
             else:
                 # Append break point with bigger slope
-                s1 = _s(l1, x)
-                merged.append(l2[j] if l2[j][2] > s1
-                              else break_point.new(x, f1, s1))
+                merged.append(l2[j] if s2 > s1 else break_point.new(x, f1, s1))
 
         else:
             x = l1[i][0]
@@ -143,10 +146,13 @@ def merge(l1, l2, M):
             merge.insert(-1, break_point.new(
                 bp_old[0] + df_old, bp_old[1] + bp_old[2] * df_old, 1))
 
-        i = max(i + di, len(l1) - 1)
-        j = max(j + dj, len(l2) - 1)
+        i = i + di
+        j = j + dj
 
         df_old = df
+
+
+    return merged
 
 
 def search_domain(l, charge):
@@ -212,16 +218,20 @@ def _f(l, charge):
 
     Returns:
     Final state of charge
-    None: charge is bigger than the upper limit of l domain
     """
+    if charge == float('-inf'):
+        return float('-inf')
 
-    IC = [bp[0] for bp in l]
-    FC = [bp[1] for bp in l]
-    S = [bp[2] for bp in l]
+    if charge < l[0][0]:
+        return float('-inf')
 
     if charge < 0:
         print('_f: Charge is negative!')
         sys.exit()
+
+    IC = [bp[0] for bp in l]
+    FC = [bp[1] for bp in l]
+    S = [bp[2] for bp in l]
 
     for i1, i2, f1, f2, s in zip(IC[:-1], IC[1:], FC[:-1], FC[1:], S[:-1]):
         if i1 <= charge < i2:
@@ -255,6 +265,9 @@ def _s(l, charge):
     Returns:
     Slope of l at charge
     """
+
+    if charge < l[0][0]:
+        return 0
 
     IC = [bp[0] for bp in l]
     FC = [bp[1] for bp in l]
