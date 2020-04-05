@@ -94,9 +94,7 @@ class EVRouting:
                         min_list.append(bp[0] - bp[1])
 
                     minkey = min(min_list)
-                    print('minkey', minkey)
                     Q[v] = potential[v] + minkey
-                    print('Q[v]', Q[v])
 
         return f[t]
 

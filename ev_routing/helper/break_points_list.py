@@ -7,7 +7,7 @@ def sort(l):
     Removeing break points with the same x but different ys
 
     Args:
-    l: List of break points after linking
+    l: A given list of break points
 
     Returns:
     A new list of break points sorted and with no redundant element
@@ -75,17 +75,14 @@ def link(l_ik, l_kj):
         if l_ik[idx][2] == 0:
             l_local.append(break_point.new(l_ik[idx][0], jk[1], 0))
         elif l_ik[idx][2] == 1:
-            if jk[2] == 0:
-                l_local.append(break_point.new(
-                    l_ik[idx][0] + (jk[0] - l_ik[idx][1]), jk[1], 0))
-            else:
-                l_local.append(break_point.new(
-                    l_ik[idx][0] + (jk[0] - l_ik[idx][1]), jk[1], 1))
+            xnew = l_ik[idx][0] + (jk[0] - l_ik[idx][1])
+            if 0 < xnew < l_ik[-1][0]:
+                l_local.append(break_point.new(xnew, jk[1], 0 if jk[2] == 0 else 1))
 
     return l_local
 
 
-def merge(l1, l2):
+def merge(l1, l2, M):
     """
     Point-wise maximum of two functions (list of break points)
 
@@ -101,6 +98,9 @@ def merge(l1, l2):
     i, j, di, dj = 0, 0, 0, 0
 
     df_old = 0.0
+    x_old = 0.0
+    f_old = 0.0
+    s_old = 0.0
 
     while i < len(l1) or j < len(l2):
         if l1[i][0] < l2[j][0]:
@@ -131,6 +131,7 @@ def merge(l1, l2):
         else:
             x = l1[i][0]
             f1, f2 = l1[i][1], l2[j][1]
+            s1, s2 = l1[i][2], l2[j][2]
             di, dj = 1, 1
 
             if f1 != f2:
@@ -142,17 +143,46 @@ def merge(l1, l2):
         df = f2 - f1
 
         if df * df_old < 0:  # Found intersection
-            bp_old = merged[-2]
-            merge.insert(-1, break_point.new(
-                bp_old[0] + df_old, bp_old[1] + bp_old[2] * df_old, 1))
+            xnew = x_old + df_old
+            fnew = f_old + s_old * df_old
+
+            if 0 < xnew < M and fnew < M:
+                merged.insert(-1, break_point.new(xnew, fnew, s_old))
 
         i = i + di
         j = j + dj
 
         df_old = df
-
+        x_old = merged[-1][0]
+        f_old = merged[-1][1]
+        s_old = merged[-1][2]
 
     return merged
+
+
+def _remove_redundant_break_points(l, sig=3):
+    """
+    Combining adjacent break points if they're along the same line
+    NB: In-place changes on l
+
+    Args:
+    l: A list of break points
+
+    Returns:
+    Nothing!
+    """
+    if len(l) <= 2:
+        return
+
+    i = 0
+
+    while i < len(l) - 2:
+        if l[i][2] != l[i+1][2]:
+            i += 1
+        elif round(l[i][1] + l[i][2] * (l[i+1][0] - l[i][0]), sig) == round(l[i+1][1], sig):
+            del l[i+1]
+        else:
+            i += 1
 
 
 def search_domain(l, charge):

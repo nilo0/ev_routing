@@ -10,8 +10,8 @@ def init(e, M):
 
     if c < 0:
         return [
-            new(0, -c, 1),
-            new(M + c, M, 0),
+            new(0, abs(c), 1),
+            new(M - abs(c), M, 0),
             new(M, M, 0),
         ]
     else:
