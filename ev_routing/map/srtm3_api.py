@@ -78,10 +78,10 @@ class SRTM3API:
                 raise RuntimeError('Out of range!', lon, lat)
 
             xi, yi = np.meshgrid(
-                    np.arange(i - 1.5, i + 3.5, 1.0),
-                    np.arange(j - 1.5, j + 3.5, 1.0))
+                np.arange(i - 1.5, i + 3.5, 1.0),
+                np.arange(j - 1.5, j + 3.5, 1.0))
             f = interp2d(
-                    xi, yi, self.data['mesh'][i-2:i+3, j-2:j+3], kind='cubic')
+                xi, yi, self.data['mesh'][i-2:i+3, j-2:j+3], kind='cubic')
 
             return f(x, y)[0]
         else:

@@ -77,7 +77,8 @@ def link(l_ik, l_kj):
         elif l_ik[idx][2] == 1:
             xnew = l_ik[idx][0] + (jk[0] - l_ik[idx][1])
             if 0 < xnew < l_ik[-1][0]:
-                l_local.append(break_point.new(xnew, jk[1], 0 if jk[2] == 0 else 1))
+                l_local.append(break_point.new(
+                    xnew, jk[1], 0 if jk[2] == 0 else 1))
 
     return l_local
 

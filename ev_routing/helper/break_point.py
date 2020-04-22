@@ -95,6 +95,6 @@ def overlap(bp1, xlen1, bp2, xlen2):
     """
 
     return {
-            'domain': domain_overlap(bp1, xlen1, bp2, xlen2),
-            'range': range_overlap(bp1, xlen1, bp2, xlen2)
-            }
+        'domain': domain_overlap(bp1, xlen1, bp2, xlen2),
+        'range': range_overlap(bp1, xlen1, bp2, xlen2)
+    }
