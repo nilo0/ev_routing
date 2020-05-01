@@ -1,7 +1,7 @@
 from .main import EVRouting
 from .helper import break_point
 from .helper import break_points_list
-
+from copy import deepcopy
 
 class DijkstraProfile(EVRouting):
     """Dijkstra profile """
@@ -19,7 +19,7 @@ class DijkstraProfile(EVRouting):
 
         self.M = M
 
-    def run(self, s, t):
+    def run(self, sid, tid):
         """
         EV Dijkstra profile search
 
@@ -27,8 +27,8 @@ class DijkstraProfile(EVRouting):
         to its optimal SoC at target node
 
         Args:
-        s: id of the source node
-        t: id of the target node
+        sid: id of the source node
+        tid: id of the target node
         """
         Q, f = {}, {}
         potential = self._potential()
@@ -39,29 +39,41 @@ class DijkstraProfile(EVRouting):
                 break_point.new(self.M, float('-inf'), 0),
             ]
 
-        f[s] = [
+        f[sid] = [
             break_point.new(0, 0, 1),
             break_point.new(self.M, self.M, 0),
         ]
 
-        Q[s] = 0 + potential[s]
+        Q[sid] = 0 + potential[sid]
 
         while len(Q) > 0:
-            uid = Q.pop(min(Q, key=lambda k: Q[k]))
+            uid = min(Q, key=lambda k: Q[k])
+            del Q[uid]
             u = self.v[uid]
 
             for eid in u['outgoing']:
                 e = self.e[eid]
-                v = e['v']
-                l = []
+                vid = e['v']
+
+                # TODO:
+                # if self.target_prune(v, f[v], t, f[t], M):
+                #     continue
 
                 f_u = f[uid]
+                f_v = deepcopy(f[vid])
                 f_e = break_point.init(e, self.M)
 
                 l = break_points_list.link(f_u, f_e)
                 l = break_points_list.sort(l)
 
-                # TODO: Port d_profile from main to here
+                f[vid] = break_points_list.merge(f[vid], l, self.M)
+
+                keys = [bp[0] - bp[1] for bp in f[vid] if bp not in f_v]
+
+                if keys:
+                    Q[vid] = potential[vid] + min(keys)
+
+        return f[tid]
 
     def _alpha(self):
         """
@@ -95,7 +107,7 @@ class DijkstraProfile(EVRouting):
         """
         pot = {}
 
-        alpha = self.alpha()
+        alpha = self._alpha()
 
         for uid in self.v:
             pot[uid] = alpha * self.v[uid]['elev']
