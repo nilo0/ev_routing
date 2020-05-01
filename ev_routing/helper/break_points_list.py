@@ -158,6 +158,8 @@ def merge(l1, l2, M):
         f_old = merged[-1][1]
         s_old = merged[-1][2]
 
+    _remove_redundant_break_points(merged)
+
     return merged
 
 
@@ -173,7 +175,7 @@ def _remove_redundant_break_points(l, sig=3):
     Nothing!
     """
     if len(l) <= 2:
-        return
+        return l
 
     i = 0
 
