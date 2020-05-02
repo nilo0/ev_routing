@@ -27,60 +27,6 @@ class EVRouting:
 
         self.vid = [v['id'] for v in self.v.values()]
 
-    def check_in_range(self, bp, l1):
-        for b1, b2 in zip(l1[:-1], l1[1:]):
-            if b1[1] != b2[1]:
-                if b1[1] <= bp[0] < b2[1]:
-                    return b1
-            if b1[1] == b2[1] and bp[0] == b1[1]:
-                return b1
-        if bp[0] == l1[-1][1]:
-            return l1[-1]
-
-    def target_prune(self, v, f_v, t, f_t, M):
-        """
-        target pruning step
-        t : target
-        l : f[v]
-        Q : the priority queue after changing the key value of node v
-        M : battery capacity
-        """
-        f_v.sort(key=lambda tup: tup[0])
-        f_t.sort(key=lambda tup: tup[0])
-
-        c_t = [0]
-        for bp in f_t:
-            consumption = bp[0] - bp[1]
-            if consumption <= M:
-                c_t.append(consumption)
-        c_t_max = max(c_t)
-
-        c_v = [M]
-        for bp in f_v:
-            consumption = bp[0] - bp[1]
-            if consumption >= 0:
-                c_v.append(consumption)
-        c_v_min = min(c_v)
-
-        b_t_min = self.find_minimum_bv(f_t)
-        b_v_min = self.find_minimum_bv(f_v)
-
-        if b_v_min >= b_t_min and c_v_min >= c_t_max:
-            return True
-
-        return False
-
-    def find_minimum_bv(self, l):
-        """
-        returns the min initial charge level for which f_t is not -infty
-        l : f[t], list of break points of SoC function f_t b, f(b), slope_at_b)
-        """
-        for bp in l:
-            if bp[1] >= 0:
-                return bp[0]
-
-        return 0
-
     def check_alpha_true(self):
         num_edges = 0
         num_pos_cost = 0

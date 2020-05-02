@@ -3,6 +3,7 @@ from .helper import break_point
 from .helper import break_points_list
 from copy import deepcopy
 
+
 class DijkstraProfile(EVRouting):
     """Dijkstra profile """
 
@@ -55,16 +56,15 @@ class DijkstraProfile(EVRouting):
                 e = self.e[eid]
                 vid = e['v']
 
-                # TODO:
-                # if self.target_prune(v, f[v], t, f[t], M):
-                #     continue
+                if self._target_prune(f[vid], f[tid]):
+                    print('Target pruning has been True')
+                    continue
 
                 f_u = f[uid]
                 f_v = deepcopy(f[vid])
                 f_e = break_point.init(e, self.M)
 
-                l = break_points_list.link(f_u, f_e)
-                l = break_points_list.sort(l)
+                l = break_points_list.sort(break_points_list.link(f_u, f_e))
 
                 f[vid] = break_points_list.merge(f[vid], l, self.M)
 
@@ -96,8 +96,7 @@ class DijkstraProfile(EVRouting):
                 else:
                     q_down.append(alpha_e[eid])
 
-        alpha_max = int(max(q_up))
-        alpha_min = int(min(q_down))
+        alpha_max, alpha_min = int(max(q_up)), int(min(q_down))
 
         return 1 if alpha_min <= 1 <= alpha_max else 2
 
@@ -113,3 +112,34 @@ class DijkstraProfile(EVRouting):
             pot[uid] = alpha * self.v[uid]['elev']
 
         return pot
+
+    def _target_prune(self, f_vid, f_tid):
+        """
+        :param f_vid: break points of SoC at node v
+        :param f_tid: break points of SoC at target
+        :return: True if v can be pruned, false if it
+            can be added to queue
+
+        """
+        f_vid.sort(key=lambda tup: tup[0])
+        f_tid.sort(key=lambda tup: tup[0])
+
+        c_t = [bp[0] - bp[1] for bp in f_tid if bp[0] - bp[1] <= self.M]
+        c_t_max = max(c_t) if c_t else 0
+
+        c_v = [bp[0] - bp[1] for bp in f_vid if bp[0] - bp[1] >= 0]
+        c_v_min = min(c_v) if c_v else self.M
+
+        b_t = [bp[0] for bp in f_tid if bp[1] >= 0]
+        if b_t:
+            b_t_min = min(b_t)
+        else:
+            return False
+
+        b_v = [bp[0] for bp in f_vid if bp[1] >= 0]
+        if b_v:
+            b_v_min = min(b_v)
+        else:
+            return False
+
+        return True if b_v_min >= b_t_min and c_v_min >= c_t_max else False
