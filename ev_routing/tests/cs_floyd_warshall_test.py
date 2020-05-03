@@ -8,6 +8,6 @@ def test_csfloydwarshall():
 
     M = 3000
 
-    csfw = CSFloydWarshall(area, M)
+    csfw = CSFloydWarshall(area, M, n_nodes=16, n_stations=4)
     for i in csfw.station_keys:
         assert i in csfw.v

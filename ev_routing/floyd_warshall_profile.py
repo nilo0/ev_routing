@@ -12,16 +12,17 @@ class FloydWarshallProfile(EVRouting):
         Initializing FloydWarshallProfile class
         by calling EVRouting initializer
 
-        Args:
-        area:
-        M: Maximum battery capacity
+        :param area:
+        :param M: Maximum battery capacity
+        :param n: Number of nodes to be considered
+            (if None, it includes all nodes within the area)
         """
         EVRouting.__init__(self, area)
 
         self.matrix = []
         self.M = M
 
-        n = len(self.v) if n is None else n
+        n = n if n else len(self.v)
 
         for i in range(n):
             row = []
