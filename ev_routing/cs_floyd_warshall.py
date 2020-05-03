@@ -1,3 +1,4 @@
+import random
 from .main import EVRouting
 
 
@@ -13,7 +14,9 @@ class CSFloydWarshall(EVRouting):
         """
         EVRouting.__init__(self, area)
 
-        # TODO: Randomly specify CS in self.v
+        self.station_keys = list(set([
+            random.choice(list(self.v)) for _ in range(30)
+        ]))
 
     def run(self):
         """

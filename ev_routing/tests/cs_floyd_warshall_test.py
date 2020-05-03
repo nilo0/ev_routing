@@ -9,4 +9,5 @@ def test_csfloydwarshall():
     M = 3000
 
     csfw = CSFloydWarshall(area, M)
-    csfw.run()
+    for i in csfw.station_keys:
+        assert i in csfw.v
