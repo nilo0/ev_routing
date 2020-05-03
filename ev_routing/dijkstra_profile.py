@@ -5,7 +5,7 @@ from copy import deepcopy
 
 
 class DijkstraProfile(EVRouting):
-    """Dijkstra profile """
+    """Dijkstra profile"""
 
     def __init__(self, area, M):
         """

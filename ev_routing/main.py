@@ -1,5 +1,4 @@
 from .map.map_api import MapAPI
-from copy import deepcopy
 
 
 class EVRouting:
