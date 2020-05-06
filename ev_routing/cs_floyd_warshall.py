@@ -25,13 +25,13 @@ class CSFloydWarshall(FloydWarshallProfile):
 
         self.M = M
         self.n_nodes = n_nodes if n_nodes else len(self.v)
-        self.n_stations = n_stations if n_stations else int(.1 * len(self.n_nodes))
+        self.n_stations = n_stations if n_stations else int(.1 * self.n_nodes)
 
-        self.station_keys = list(set([
-            random.choice(list(self.vid[:self.n_nodes])) for _ in range(self.n_stations)
+        random.seed(123)
+        self.station_vid = list(set([
+            random.choice(self.vid[:self.n_nodes]) for _ in range(self.n_stations)
         ]))
-
-        self.station_indices = [self.vid.index(k) for k in self.station_keys]
+        self.n_stations = len(self.station_vid)
 
         self.stations = []
         start_time = time.time()
@@ -39,8 +39,6 @@ class CSFloydWarshall(FloydWarshallProfile):
         self.dt_stations_graph = time.time() - start_time
 
     def _stations_graph(self):
-        matrix_len = len(self.station_indices)
-
         def fill_min_costs(i, j):
             if bp_list.reachable(self.matrix[i][j]):
                 bp_id = bp_list.search_range(self.matrix[i][j], 0)
@@ -48,12 +46,12 @@ class CSFloydWarshall(FloydWarshallProfile):
             else:
                 return float('inf')
 
-        min_costs = matrix_helper.init(matrix_len, matrix_len, fill_min_costs)
-        helper = matrix_helper.zeros(matrix_len, matrix_len, by=None)
+        min_costs = matrix_helper.init(self.n_stations, self.n_stations, fill_min_costs)
+        helper = matrix_helper.zeros(self.n_stations, self.n_stations, by=None)
 
-        for k in range(len(min_costs)):
-            for i in range(len(min_costs)):
-                for j in range(len(min_costs)):
+        for k in range(self.n_stations):
+            for i in range(self.n_stations):
+                for j in range(self.n_stations):
                     ikj_cost = min_costs[i][k] + min_costs[k][j]
                     if min_costs[i][j] > ikj_cost:
                         min_costs[i][j] = ikj_cost
@@ -70,7 +68,7 @@ class CSFloydWarshall(FloydWarshallProfile):
                 else:
                     return []
 
-        self.stations = matrix_helper.init(matrix_len, matrix_len, get_path)
+        self.stations = matrix_helper.init(self.n_stations, self.n_stations, get_path)
 
 
 
