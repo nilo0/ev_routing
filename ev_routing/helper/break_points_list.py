@@ -180,10 +180,10 @@ def _remove_redundant_break_points(l, sig=3):
     i = 0
 
     while i < len(l) - 2:
-        if l[i][2] != l[i+1][2]:
+        if l[i][2] != l[i + 1][2]:
             i += 1
-        elif round(l[i][1] + l[i][2] * (l[i+1][0] - l[i][0]), sig) == round(l[i+1][1], sig):
-            del l[i+1]
+        elif round(l[i][1] + l[i][2] * (l[i + 1][0] - l[i][0]), sig) == round(l[i + 1][1], sig):
+            del l[i + 1]
         else:
             i += 1
 
@@ -204,7 +204,7 @@ def search_domain(l, charge):
         return None
 
     for i in range(len(l) - 1):
-        if l[i][0] <= charge < l[i+1][0]:
+        if l[i][0] <= charge < l[i + 1][0]:
             return i
 
     # Checking the endpoint
@@ -225,7 +225,7 @@ def search_range(l, charge):
             if charge == l[i][1]:
                 return i
         elif l[i][2] == 1:  # slope is one
-            if l[i][1] <= charge < l[i][1] + (l[i+1][0] - l[i][0]):
+            if l[i][1] <= charge < l[i][1] + (l[i + 1][0] - l[i][0]):
                 return i
         else:
             sys.exit()
@@ -322,3 +322,16 @@ def _s(l, charge):
     else:
         print("_s: I should not be here")
         sys.exit()
+
+
+def reachable(l):
+    """
+    Checks if SoC function is greater than zero in its domain
+    :param l: A given list of break points
+    :return: True if reachable else False
+    """
+    for bp in l:
+        if bp[1] >= 0:
+            return True
+    return False
+

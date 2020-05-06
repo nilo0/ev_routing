@@ -15,7 +15,7 @@ def test_sort():
     assert len(sorted_lst) == 5
 
     for i in range(len(sorted_lst) - 1):
-        assert sorted_lst[i][0] < sorted_lst[i+1][0]
+        assert sorted_lst[i][0] < sorted_lst[i + 1][0]
 
 
 def test_remove_redundant_break_points():
@@ -30,3 +30,19 @@ def test_remove_redundant_break_points():
     bp_list._remove_redundant_break_points(lst)
 
     assert lst == [bp.new(0, 0, 1), (100, 100, 0)]
+
+
+def test_reachable():
+    lst = [
+        bp.new(0, float('-inf'), 0),
+        bp.new(100, float('-inf'), 0),
+    ]
+
+    assert bp_list.reachable(lst) is False
+
+    lst = [
+        bp.new(0, float('-inf'), 0),
+        bp.new(10, 0, 1),
+        bp.new(100, 90, 0),
+    ]
+    assert bp_list.reachable(lst) is True
