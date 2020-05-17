@@ -9,17 +9,34 @@ def init(e, M):
     c = e['cost']
 
     if c < 0:
-        return [
-            new(0, abs(c), 1),
-            new(M - abs(c), M, 0),
-            new(M, M, 0),
-        ]
-    else:
-        return [
-            new(0, float('-inf'), 0),
-            new(c, 0, 1),
-            new(M, M - c, 0),
-        ]
+        if abs(c) < M:
+            return [
+                new(0, abs(c), 1),
+                new(M - abs(c), M, 0),
+                new(M, M, 0),
+            ]
+        elif abs(c) >= M:
+            return [
+                new(0, M, 0),
+                new(M, M, 0)
+            ]
+    elif c >= 0:
+        if c < M:
+            return [
+                new(0, float('-inf'), 0),
+                new(c, 0, 1),
+                new(M, M - c, 0),
+            ]
+        elif c == M:
+            return [
+                new(0, float('-inf'), 0),
+                new(M, 0, 0)
+            ]
+        elif c > M:
+            return [
+                new(0, float('-inf'), 0),
+                new(M, float('-inf'), 0)
+            ]
 
 
 def new(ic, fc, slope):
