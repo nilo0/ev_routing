@@ -4,11 +4,11 @@ from .main import EVRouting
 class Dijkstra(EVRouting):
     """Dijkstra"""
 
-    def __init__(self, area):
+    def __init__(self, area, testing=False):
         """
         Initializing Dijkstra class by calling EVRouting initializer
         """
-        EVRouting.__init__(self, area)
+        EVRouting.__init__(self, area, testing=testing)
 
     def dijkstra(self, s, t, bs, M=float('inf')):
         """

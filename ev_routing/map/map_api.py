@@ -26,17 +26,22 @@ class MapAPI:
 
     MAPAPI_DIR = os.environ['HOME'] + '/.map_api'
 
-    def __init__(self, area=[]):
+    def __init__(self, area=[], testing=False):
         """
         Initializing OpenStreetMapAPI object
 
         Keyword arguments:
         area -- Array of 4 Numbers (bottom left lat/lon, upper right lat/lon)
+        testing -- returns the test graph
 
 
         Example
         >>> map = MapAPI( [ 52.50, 13.37, 52.53, 13.40 ] )
         """
+
+        if testing:
+            self.v, self.e = self.testing_graph()
+            return
 
         # Create map_api config directory
         if 'HOME' not in os.environ:
@@ -234,3 +239,86 @@ class MapAPI:
         edges = self.MAPAPI_DIR + '/' + base + '-edges_v1.pickle'
 
         return vertices, edges
+
+
+    def testing_graph(self):
+        lat0 = 52.51
+        dlat = (52.52 - 52.51) / 5
+
+        lon0 = 13.383
+        dlon = (13.391 - 13.383) / 6
+        v = {
+            0: self._new_vertex(0, lat0 + 2 * dlat, lon0 + 2 * dlon),
+            1: self._new_vertex(1, lat0 + 3 * dlat, lon0 + 1 * dlon),
+            2: self._new_vertex(2, lat0 + 4 * dlat, lon0 + 3 * dlon),
+            3: self._new_vertex(3, lat0 + 3 * dlat, lon0 + 2 * dlon),
+            4: self._new_vertex(4, lat0 + 0 * dlat, lon0 + 1 * dlon),
+            5: self._new_vertex(5, lat0 + 1 * dlat, lon0 + 5 * dlon),
+            6: self._new_vertex(6, lat0 + 1 * dlat, lon0 + 2 * dlon),
+            7: self._new_vertex(7, lat0 + 3 * dlat, lon0 + 5 * dlon),
+            8: self._new_vertex(8, lat0 + 2 * dlat, lon0 + 4 * dlon),
+            9: self._new_vertex(9, lat0 + 0 * dlat, lon0 + 0 * dlon),
+        }
+
+        v[0]['incoming'] = [8, 3, 1, 6]
+        v[0]['outgoing'] = [8, 3, 6]
+        v[1]['incoming'] = [3]
+        v[1]['outgoing'] = [5, 2]
+        v[2]['incoming'] = []
+        v[2]['outgoing'] = [3]
+        v[3]['incoming'] = [1, 2, 0]
+        v[3]['outgoing'] = [0, 1]
+        v[4]['incoming'] = [6, 9]
+        v[4]['outgoing'] = [6, 9]
+        v[5]['incoming'] = [8]
+        v[5]['outgoing'] = [8]
+        v[6]['incoming'] = [0, 4]
+        v[6]['outgoing'] = [0, 4]
+        v[7]['incoming'] = [8]
+        v[7]['outgoing'] = [8]
+        v[8]['incoming'] = [7, 5, 0]
+        v[8]['outgoing'] = [7, 5, 0]
+        v[9]['incoming'] = [4]
+        v[9]['outgoing'] = [4]
+
+        e = {
+            0: self._new_edge(0, 2, 3),
+            1: self._new_edge(1, 1, 3),
+            2: self._new_edge(2, 0, 3),
+            3: self._new_edge(3, 3, 1),
+            4: self._new_edge(4, 3, 0),
+            5: self._new_edge(5, 1, 0),
+            6: self._new_edge(6, 8, 0),
+            7: self._new_edge(7, 3, 8),
+            8: self._new_edge(8, 7, 8),
+            9: self._new_edge(9, 8, 7),
+            10: self._new_edge(10, 8, 5),
+            11: self._new_edge(11, 5, 8),
+            12: self._new_edge(12, 0, 6),
+            13: self._new_edge(13, 6, 0),
+            14: self._new_edge(14, 4, 6),
+            15: self._new_edge(15, 6, 4),
+            16: self._new_edge(16, 9, 4),
+            17: self._new_edge(17, 4, 9),
+        }
+
+        e[0]['cost'] = 1
+        e[1]['cost'] = 2
+        e[2]['cost'] = 2
+        e[3]['cost'] = 2
+        e[4]['cost'] = 2
+        e[5]['cost'] = 5
+        e[6]['cost'] = 3
+        e[7]['cost'] = 3
+        e[8]['cost'] = 5
+        e[9]['cost'] = 5
+        e[10]['cost'] = 5
+        e[11]['cost'] = 5
+        e[12]['cost'] = 1
+        e[13]['cost'] = 1
+        e[14]['cost'] = 2
+        e[15]['cost'] = 2
+        e[16]['cost'] = 1
+        e[17]['cost'] = 1
+
+        return v, e

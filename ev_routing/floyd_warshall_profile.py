@@ -7,7 +7,7 @@ from .helper import break_points_list
 class FloydWarshallProfile(EVRouting):
     """Floyd-Warshall profile"""
 
-    def __init__(self, area, M, n=None):
+    def __init__(self, area, M, n=None, testing=False):
         """
         Initializing FloydWarshallProfile class
         by calling EVRouting initializer
@@ -17,7 +17,7 @@ class FloydWarshallProfile(EVRouting):
         :param n: Number of nodes to be considered
             (if None, it includes all nodes within the area)
         """
-        EVRouting.__init__(self, area)
+        EVRouting.__init__(self, area, testing=testing)
 
         self.matrix = []
         self.M = M

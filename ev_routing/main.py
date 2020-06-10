@@ -4,7 +4,7 @@ from .map.map_api import MapAPI
 class EVRouting:
     """Electrical Vehicles (EV) Routing Class"""
 
-    def __init__(self, area):
+    def __init__(self, area, testing=False):
         """
         Initializing EVRouting by:
         - loading nodes and edges based on a given region
@@ -18,7 +18,7 @@ class EVRouting:
         >>> evr = EVRouting([ 52.50, 13.37, 52.53, 13.40 ])
         """
 
-        self.map = MapAPI(area)
+        self.map = MapAPI(area, testing=testing)
         self.v = self.map.v
         self.e = self.map.e
 

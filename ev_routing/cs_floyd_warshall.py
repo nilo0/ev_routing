@@ -9,7 +9,7 @@ from .helper import break_point
 class CSFloydWarshall(FloydWarshallProfile):
     """Floyd-Warshall algorithm with Charging Station"""
 
-    def __init__(self, area, M, n_nodes=None, n_stations=None):
+    def __init__(self, area, M, n_nodes=None, n_stations=None, testing=False):
         """
         Initializing CSFloydWarshall
 
@@ -18,7 +18,7 @@ class CSFloydWarshall(FloydWarshallProfile):
         :param n_nodes: Number of nodes to be considered
             (if None, it includes all nodes within the area)
         """
-        FloydWarshallProfile.__init__(self, area, M, n=n_nodes)
+        FloydWarshallProfile.__init__(self, area, M, n=n_nodes, testing=testing)
 
         start_time = time.time()
         self.run()  # Result will be set in self.matrix

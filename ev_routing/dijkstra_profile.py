@@ -7,7 +7,7 @@ from copy import deepcopy
 class DijkstraProfile(EVRouting):
     """Dijkstra profile"""
 
-    def __init__(self, area, M):
+    def __init__(self, area, M, testing=False):
         """
         Initializing DijkstraProfile class
         by calling EVRouting initializer
@@ -16,7 +16,7 @@ class DijkstraProfile(EVRouting):
         area:
         M: Maximum battery capacity
         """
-        EVRouting.__init__(self, area)
+        EVRouting.__init__(self, area, testing=testing)
 
         self.M = M
 
