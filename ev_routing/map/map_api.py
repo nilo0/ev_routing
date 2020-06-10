@@ -294,7 +294,7 @@ class MapAPI:
             4: self._new_edge(4, 3, 0),
             5: self._new_edge(5, 1, 0),
             6: self._new_edge(6, 8, 0),
-            7: self._new_edge(7, 3, 8),
+            7: self._new_edge(7, 0, 8),
             8: self._new_edge(8, 7, 8),
             9: self._new_edge(9, 8, 7),
             10: self._new_edge(10, 8, 5),
