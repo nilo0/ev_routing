@@ -6,7 +6,6 @@ from math import sin, cos, atan2, sqrt
 import pickle
 import os
 
-
 api = overpy.Overpass()
 
 
@@ -38,10 +37,11 @@ class MapAPI:
         Example
         >>> map = MapAPI( [ 52.50, 13.37, 52.53, 13.40 ] )
         """
+        self.v = {}
+        self.e = {}
 
         if testing:
-            self.v, self.e = self.testing_graph()
-            return
+            area = [52.51, 13.373, 52.52, 13.401]
 
         # Create map_api config directory
         if 'HOME' not in os.environ:
@@ -54,9 +54,14 @@ class MapAPI:
         self.scope = {
             'area': area,
             'bottom_left': (area[0], area[1]),
-            'top_right':  (area[2], area[3]),
+            'top_right': (area[2], area[3]),
             'center': ((area[2] + area[0]) / 2, (area[3] + area[1]) / 2)
         }
+
+        if testing:
+            self.v = self.testing_vertices(area)
+            self.e = self.testing_edges()
+            return
 
         # Loading/downloadin elevations
         SRTM = SRTM3API(area)
@@ -67,9 +72,6 @@ class MapAPI:
 
         # OpenStreetMap Query
         self.response = api.query(self._osm_query_string())
-
-        self.v = {}
-        self.e = {}
 
         i = 0
         for w in self.response.ways:
@@ -93,9 +95,9 @@ class MapAPI:
                 if 'oneway' in w.tags and w.tags['oneway'] == 'yes':
                     i += 1
                 else:
-                    self.e[i+1] = self._new_edge(i+1, v.id, u.id)
-                    self.v[v.id]['outgoing'].append(i+1)
-                    self.v[u.id]['incoming'].append(i+1)
+                    self.e[i + 1] = self._new_edge(i + 1, v.id, u.id)
+                    self.v[v.id]['outgoing'].append(i + 1)
+                    self.v[u.id]['incoming'].append(i + 1)
                     i += 2
 
         # Save data on disk
@@ -159,8 +161,8 @@ class MapAPI:
         """
         dlat = p2[0] - p1[0]
         dlon = p2[1] - p1[1]
-        a = (sin(dlat / 2))**2 + cos(p1[0]) * cos(p1[0]) * (sin(dlon / 2))**2
-        l_e = 6.378e6 * 2 * atan2(sqrt(a), sqrt(1-a))
+        a = (sin(dlat / 2)) ** 2 + cos(p1[0]) * cos(p1[0]) * (sin(dlon / 2)) ** 2
+        l_e = 6.378e6 * 2 * atan2(sqrt(a), sqrt(1 - a))
 
         h_u = p1[2]
         h_v = p2[2]
@@ -240,13 +242,13 @@ class MapAPI:
 
         return vertices, edges
 
+    def testing_vertices(self, area):
+        lat0 = area[0]
+        dlat = (area[2] - area[0]) / 5
 
-    def testing_graph(self):
-        lat0 = 52.51
-        dlat = (52.52 - 52.51) / 5
+        lon0 = area[1]
+        dlon = (area[3] - area[1]) /6
 
-        lon0 = 13.383
-        dlon = (13.391 - 13.383) / 6
         v = {
             0: self._new_vertex(0, lat0 + 2 * dlat, lon0 + 2 * dlon),
             1: self._new_vertex(1, lat0 + 3 * dlat, lon0 + 1 * dlon),
@@ -281,6 +283,9 @@ class MapAPI:
         v[9]['incoming'] = [4]
         v[9]['outgoing'] = [4]
 
+        return v
+
+    def testing_edges(self):
         e = {
             0: self._new_edge(0, 2, 3),
             1: self._new_edge(1, 1, 3),
@@ -321,4 +326,4 @@ class MapAPI:
         e[16]['cost'] = 1
         e[17]['cost'] = 1
 
-        return v, e
+        return e
