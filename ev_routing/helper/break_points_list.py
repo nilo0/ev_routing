@@ -335,3 +335,79 @@ def reachable(l):
             return True
     return False
 
+
+def disconnected_merge(l1, c1, l2, c2, D):
+    """
+
+    :param l1: First list
+    :param c1: Cost of the SP from first loading station to target
+    :param l2: Second list
+    :param c2: Cost of the SP from second loading station to target
+    :param D: Battery capacity, here the Domain
+    :return: Point-wise maximum of the two list
+    """
+    merged_final = []
+    i, j, di, dj = 0, 0, 0, 0
+
+    df_old = 0.0
+    x_old = 0.0
+    f_old = 0.0
+    s_old = 0.0
+
+    while i < len(l1) or j < len(l2):
+        if l1[i][0] < l2[j][0]:
+            x = l1[i][0]
+            f1, f2 = l1[i][1] - c1, _f(l2, x) - c2
+            s1, s2 = l1[i][2], _s(l2, x)
+            di, dj = 1, 0
+
+            if f1 != f2:
+                merged_final.append(
+                    break_point.new(x, f1, s1) if f1 > f2
+                    else break_point.new(x, f2, s2))
+            else:
+                merged_final.append(break_point.new(x, f1, s1) if s1 > s2 else break_point.new(x, f2, s2))
+
+        elif l2[j][0] < l1[i][0]:
+            x = l2[j][0]
+            f1, f2 = _f(l1, x) - c1, l2[j][1] - c2
+            s1, s2 = _s(l1, x), l2[j][2]
+            di, dj = 0, 1
+
+            if f1 != f2:
+                merged_final.append(break_point.new(x, f1, s1) if f1 > f2 else break_point.new(x, f2, s2))
+            else:
+                # Append break point with bigger slope
+                merged_final.append(break_point.new(x, f2, s2) if s2 > s1 else break_point.new(x, f1, s1))
+
+        else:
+            x = l1[i][0]
+            f1, f2 = l1[i][1] - c1, l2[j][1] - c2
+            s1, s2 = l1[i][2], l2[j][2]
+            di, dj = 1, 1
+            if f1 != f2:
+                merged_final.append(break_point.new(x, f1, s1) if f1 > f2 else break_point.new(x, f2, s2))
+            else:
+                # Append break point with bigger slope
+                merged_final.append(break_point.new(x, f1, s1) if s1 > s2 else break_point.new(x, f2, s2))
+
+        df = f2 - f1
+
+        if df * df_old < 0:  # Found intersection
+            xnew = x_old + df_old
+            fnew = f_old + s_old * df_old
+
+            if 0 < xnew < D and fnew < D:
+                merged_final.insert(-1, break_point.new(xnew, fnew, s_old))
+
+        i = i + di
+        j = j + dj
+
+        df_old = df
+        x_old = merged_final[-1][0]
+        f_old = merged_final[-1][1]
+        s_old = merged_final[-1][2]
+
+    _remove_redundant_break_points(merged_final)
+
+    return merged_final

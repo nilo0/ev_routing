@@ -9,11 +9,7 @@ def test_csfloydwarshall():
     M = 3000
 
     csfw = CSFloydWarshall(area, M, n_nodes=32, n_stations=32)
-    for i in csfw.station_keys:
+    for i in csfw.station_vid:
         assert i in csfw.v
 
     csfw._stations_graph()
-
-    for i in range(len(csfw.stations)):
-        for j in range(len(csfw.stations)):
-            print(i, j, csfw.stations[i][j])

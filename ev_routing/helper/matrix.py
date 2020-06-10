@@ -18,6 +18,7 @@ def zeros(len_x, len_y, by=0):
 
 def init(len_x, len_y, func):
     """
+
     Initializing a matrix by a given elemental function
     :param len_x: x-axis length
     :param len_y: y-axis length
