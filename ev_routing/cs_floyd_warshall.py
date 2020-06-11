@@ -9,7 +9,7 @@ from .helper import break_point
 class CSFloydWarshall(FloydWarshallProfile):
     """Floyd-Warshall algorithm with Charging Station"""
 
-    def __init__(self, area, M, n_nodes=None, n_stations=None, testing=False):
+    def __init__(self, area, M, n_nodes=None, n_stations=None, testing=False, station_id=None):
         """
         Initializing CSFloydWarshall
 
@@ -28,12 +28,17 @@ class CSFloydWarshall(FloydWarshallProfile):
         self.n_nodes = n_nodes if n_nodes else len(self.v)
         self.n_stations = n_stations if n_stations else int(.1 * self.n_nodes)
 
-        random.seed(123)
-        self.station_id = list(set([
-            random.choice(range(self.n_nodes)) for _ in range(self.n_stations)
-        ]))
-        self.station_vid = [self.vid[i] for i in self.station_id]
-        self.n_stations = len(self.station_id)
+        if self.n_stations > 0:
+            if station_id is None:
+                random.seed(123)
+                self.station_id = list(set([
+                    random.choice(range(self.n_nodes)) for _ in range(self.n_stations)
+                ]))
+            else:
+                self.station_id = station_id
+
+            self.station_vid = [self.vid[i] for i in self.station_id]
+            self.n_stations = len(self.station_id)
 
         self.stations = []
         self.min_costs = []
@@ -87,13 +92,13 @@ class CSFloydWarshall(FloydWarshallProfile):
             else:
                 return float('inf')
 
-        c_new = matrix_helper.init(self.n_nodes, self.n_nodes, fill_final_min_costs())
+        c_new = matrix_helper.init(self.n_nodes, self.n_nodes, fill_final_min_costs)
 
         for i in range(self.n_nodes):
             if self.vid[i] in self.station_vid:
                 continue
 
-            for j in range(self.nodes):
+            for j in range(self.n_nodes):
                 if self.vid[j] in self.station_vid:
                     continue
 
@@ -116,11 +121,12 @@ class CSFloydWarshall(FloydWarshallProfile):
 
                         bp_id = bp_list.search_range(self.matrix[sj][j], 0)
                         sj_j_cost = self.matrix[sj][j][bp_id][0]
-                        si_sj_cost = self.min_costs[si][sj]
+                        si_sj_cost = self.min_costs[si_id][sj_id]
 
                         if si_sj_cost + sj_j_cost < c_new[si][j]:
                             c_new[si][j] = si_sj_cost + sj_j_cost
 
-                    final_soc = bp_list.disconnected_merge(self.matrix[i][si], c_new[si][j], final_soc, 0, self.M)
+                    if c_new[si][j] < float('inf'):
+                        final_soc = bp_list.disconnected_merge(self.matrix[i][si], c_new[si][j], final_soc, 0, self.M)
 
                 self.matrix[i][j] = deepcopy(final_soc)
