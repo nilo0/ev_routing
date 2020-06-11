@@ -67,7 +67,7 @@ class FloydWarshallProfile(EVRouting):
 
     def run_with_history(self):
         """
-        Running Floyd-Marshall profile and storing its history
+        Running Floyd-Warshall profile and storing its history
         """
         n = len(self.matrix)
 

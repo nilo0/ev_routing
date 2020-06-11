@@ -43,9 +43,11 @@ class CSFloydWarshall(FloydWarshallProfile):
 
     def _stations_graph(self):
         def fill_min_costs(i, j):
-            if bp_list.reachable(self.matrix[i][j]):
-                bp_id = bp_list.search_range(self.matrix[i][j], 0)
-                return self.matrix[i][j][bp_id][0]
+            ii = self.station_id[i]
+            jj = self.station_id[j]
+            if bp_list.reachable(self.matrix[ii][jj]):
+                bp_id = bp_list.search_range(self.matrix[ii][jj], 0)
+                return self.matrix[ii][jj][bp_id][0]
             else:
                 return float('inf')
 
