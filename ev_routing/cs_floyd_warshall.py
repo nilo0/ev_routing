@@ -30,7 +30,7 @@ class CSFloydWarshall(FloydWarshallProfile):
 
         if self.n_stations > 0:
             if station_id is None:
-                random.seed(123)
+                random.seed(234)
                 self.station_id = list(set([
                     random.choice(range(self.n_nodes)) for _ in range(self.n_stations)
                 ]))
@@ -48,22 +48,23 @@ class CSFloydWarshall(FloydWarshallProfile):
 
     def _stations_graph(self):
         def fill_min_costs(i, j):
-            ii = self.station_id[i]
-            jj = self.station_id[j]
-            if bp_list.reachable(self.matrix[ii][jj]):
-                bp_id = bp_list.search_range(self.matrix[ii][jj], 0)
-                return self.matrix[ii][jj][bp_id][0]
+            if bp_list.reachable(self.matrix[i][j]):
+                bp_id = bp_list.search_range(self.matrix[i][j], 0) # TODO adjust it to the case where
+                return self.matrix[i][j][bp_id][0]    # it is reachable but min cost does not happen at 0
             else:
                 return float('inf')
 
-        self.min_costs = matrix_helper.init(self.n_stations, self.n_stations, fill_min_costs)
-        helper = matrix_helper.zeros(self.n_stations, self.n_stations, by=None)
+        self.min_costs = matrix_helper.init(self.n_nodes, self.n_nodes, fill_min_costs)
+        helper = matrix_helper.zeros(self.n_nodes, self.n_nodes, by=None)
 
-        for k in range(self.n_stations):
-            for i in range(self.n_stations):
-                for j in range(self.n_stations):
-                    ikj_cost = self.min_costs[i][k] + self.min_costs[k][j]
-                    if self.min_costs[i][j] > ikj_cost:
+        for k in range(self.n_nodes):
+            for i in range(self.n_nodes):
+                for j in range(self.n_nodes):
+                    ik_cost = self.min_costs[i][k]
+                    kj_cost = self.min_costs[k][j]
+                    ikj_cost = ik_cost + kj_cost
+                    ij_cost = self.min_costs[i][j]
+                    if ikj_cost < ij_cost:
                         self.min_costs[i][j] = ikj_cost
                         helper[i][j] = k
 
@@ -78,7 +79,10 @@ class CSFloydWarshall(FloydWarshallProfile):
                 else:
                     return []
 
-        self.stations = matrix_helper.init(self.n_stations, self.n_stations, get_path)
+        self.stations = matrix_helper.zeros(self.n_nodes, self.n_nodes, by=[])
+        for i in self.station_id:
+            for j in self.station_id:
+                self.stations[i][j] = get_path(i, j)
 
     def final(self):
         """

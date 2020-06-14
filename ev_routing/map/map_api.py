@@ -255,33 +255,12 @@ class MapAPI:
             2: self._new_vertex(2, lat0 + 4 * dlat, lon0 + 3 * dlon),
             3: self._new_vertex(3, lat0 + 3 * dlat, lon0 + 2 * dlon),
             4: self._new_vertex(4, lat0 + 0 * dlat, lon0 + 1 * dlon),
-            5: self._new_vertex(5, lat0 + 1 * dlat, lon0 + 5 * dlon),
+            5: self._new_vertex(5, lat0 + 1 * dlat, lon0 + 4 * dlon),
             6: self._new_vertex(6, lat0 + 1 * dlat, lon0 + 2 * dlon),
             7: self._new_vertex(7, lat0 + 3 * dlat, lon0 + 5 * dlon),
             8: self._new_vertex(8, lat0 + 2 * dlat, lon0 + 4 * dlon),
             9: self._new_vertex(9, lat0 + 0 * dlat, lon0 + 0 * dlon),
         }
-
-        v[0]['incoming'] = [8, 3, 1, 6]
-        v[0]['outgoing'] = [8, 3, 6]
-        v[1]['incoming'] = [3]
-        v[1]['outgoing'] = [5, 2]
-        v[2]['incoming'] = []
-        v[2]['outgoing'] = [3]
-        v[3]['incoming'] = [1, 2, 0]
-        v[3]['outgoing'] = [0, 1]
-        v[4]['incoming'] = [6, 9]
-        v[4]['outgoing'] = [6, 9]
-        v[5]['incoming'] = [8]
-        v[5]['outgoing'] = [8]
-        v[6]['incoming'] = [0, 4]
-        v[6]['outgoing'] = [0, 4]
-        v[7]['incoming'] = [8]
-        v[7]['outgoing'] = [8]
-        v[8]['incoming'] = [7, 5, 0]
-        v[8]['outgoing'] = [7, 5, 0]
-        v[9]['incoming'] = [4]
-        v[9]['outgoing'] = [4]
 
         return v
 
@@ -325,5 +304,12 @@ class MapAPI:
         e[15]['cost'] = 2
         e[16]['cost'] = 1
         e[17]['cost'] = 1
+
+        for vertex in self.v.values():
+            for edge in e.values():
+                if edge['u'] == vertex['id']:
+                    vertex['outgoing'].append(edge['id'])
+                if edge['v'] == vertex['id']:
+                    vertex['incoming'].append(edge['id'])
 
         return e
