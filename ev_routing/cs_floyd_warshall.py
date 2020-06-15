@@ -1,5 +1,6 @@
 import random
 import time
+import sys
 from copy import deepcopy
 from .floyd_warshall_profile import FloydWarshallProfile
 from .helper import break_points_list as bp_list
@@ -48,9 +49,11 @@ class CSFloydWarshall(FloydWarshallProfile):
 
     def _stations_graph(self):
         def fill_min_costs(i, j):
-            if bp_list.reachable(self.matrix[i][j]):
-                bp_id = bp_list.search_range(self.matrix[i][j], 0) # TODO adjust it to the case where
-                return self.matrix[i][j][bp_id][0]    # it is reachable but min cost does not happen at 0
+            if i == j:
+                return 0
+            e = self.map.connected(self.vid[i], self.vid[j])
+            if e:
+                return e['cost']
             else:
                 return float('inf')
 
@@ -90,11 +93,7 @@ class CSFloydWarshall(FloydWarshallProfile):
         :return:
         """
         def fill_final_min_costs(i, j):
-            if bp_list.reachable(self.matrix[i][j]):
-                bp_id = bp_list.search_range(self.matrix[i][j], 0)
-                return self.matrix[i][j][bp_id][0]
-            else:
-                return float('inf')
+            return bp_list.mim_reachable_charge(self.matrix[i][j])
 
         c_new = matrix_helper.init(self.n_nodes, self.n_nodes, fill_final_min_costs)
 

@@ -411,3 +411,14 @@ def disconnected_merge(l1, c1, l2, c2, D):
     _remove_redundant_break_points(merged_final)
 
     return merged_final
+
+def mim_reachable_charge(l):
+    """
+    Checks if SoC function is greater than zero in its domain
+    :param l: A given list of break points
+    :return: True if reachable else False
+    """
+    for bp in l:
+        if bp[1] >= 0:
+            return bp[0]
+    return float('inf')
