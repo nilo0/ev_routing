@@ -53,7 +53,7 @@ class CSFloydWarshall(FloydWarshallProfile):
                 return 0
             e = self.map.connected(self.vid[i], self.vid[j])
             if e:
-                return e['cost']
+                return e['cost'] if e['cost'] <= self.M else float('inf')
             else:
                 return float('inf')
 

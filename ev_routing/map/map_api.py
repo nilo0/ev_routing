@@ -81,7 +81,7 @@ class MapAPI:
             # For loading all nodes on a way, comment out next line
             # for u, v in zip(w.nodes[:-1], w.nodes[1:]):
 
-            for u, v in zip(w.nodes[0], w.nodes[-1]):
+            for u, v in [(w.nodes[0], w.nodes[-1])]:
                 if u.id not in self.v:
                     self.v[u.id] = self._new_vertex(u.id, u.lat, u.lon)
                     self.v[u.id]['elev'] = SRTM.elevation(u.lon, u.lat)
