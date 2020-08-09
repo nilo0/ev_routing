@@ -20,7 +20,9 @@ class MapAPI:
         'residential',
         'living_street',
         'service',
-        'road'
+        'road',
+        'unclassified',
+        'minor',
     ]
 
     MAPAPI_DIR = os.environ['HOME'] + '/.map_api'
@@ -78,10 +80,11 @@ class MapAPI:
             if len(w.nodes) < 2:
                 continue
 
-            # For loading all nodes on a way, comment out next line
-            # for u, v in zip(w.nodes[:-1], w.nodes[1:]):
+            # For only loading the two sides of a way, comment out next line
+            # for u, v in [(w.nodes[0], w.nodes[-1])]:
 
-            for u, v in [(w.nodes[0], w.nodes[-1])]:
+            # For loading all nodes on a way, comment out next line
+            for u, v in zip(w.nodes[:-1], w.nodes[1:]):
                 if u.id not in self.v:
                     self.v[u.id] = self._new_vertex(u.id, u.lat, u.lon)
                     self.v[u.id]['elev'] = SRTM.elevation(u.lon, u.lat)

@@ -98,14 +98,9 @@ class CSFloydWarshall(FloydWarshallProfile):
         c_new = matrix_helper.init(self.n_nodes, self.n_nodes, fill_final_min_costs)
 
         for i in range(self.n_nodes):
-            if self.vid[i] in self.station_vid:
-                continue
-
             for j in range(self.n_nodes):
-                if self.vid[j] in self.station_vid:
-                    continue
 
-                if bp_list.reachable(self.matrix[i][j]):
+                if i == j:
                     continue
 
                 final_soc = deepcopy(self.matrix[i][j])
