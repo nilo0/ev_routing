@@ -290,6 +290,13 @@ class MapAPI:
             15: self._new_edge(15, 6, 4),
             16: self._new_edge(16, 9, 4),
             17: self._new_edge(17, 4, 9),
+            18: self._new_edge(18, 9, 6),
+            19: self._new_edge(19, 4, 0),
+            20: self._new_edge(20, 7, 5),
+            21: self._new_edge(21, 2, 1),
+            22: self._new_edge(22, 4, 1),
+            23: self._new_edge(23, 5, 6),
+            24: self._new_edge(24, 8, 2),
         }
 
         e[0]['cost'] = 1
@@ -310,6 +317,13 @@ class MapAPI:
         e[15]['cost'] = 2
         e[16]['cost'] = 1
         e[17]['cost'] = 1
+        e[18]['cost'] = 4
+        e[19]['cost'] = 4
+        e[20]['cost'] = 5
+        e[21]['cost'] = 4
+        e[22]['cost'] = -5
+        e[23]['cost'] = -2
+        e[24]['cost'] = -5
 
         for vertex in self.v.values():
             for edge in e.values():
